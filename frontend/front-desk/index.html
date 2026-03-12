@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Front Desk</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body class="dark">
+    <section id="lock-screen">
+        <h1 class=>Front Desk</h1>
+        <form id="key-form">
+
+            <!--type=password hides characters; placeholder shows hint text inside the input-->
+            <input id="access-key" class="input1" type="password" placeholder="Enter access key" />
+            <!--type=submit means clicking button submits the form-->
+            <button class="button1" type="submit">Unlock</button>
+
+        </form>
+        <p id="error-message"></p>
+    </section>
+    <!--remains hidden until successful auth-->
+    <section id="front-desk-app" hidden>
+        <h2>Upcoming Sessions</h2>
+        <button id="add-session-btn">Add Session</button>
+        <div id="sessions-container"></div>
+    </section>
+
+    <script src="./frontdesk.js"></script>
+
+</body>
+
+</html>
