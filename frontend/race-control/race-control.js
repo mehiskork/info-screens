@@ -2,12 +2,15 @@ const socket = io()
 
 let raceFinished = false
 
-const startBtn = document.getElementById("startRace")
+const status = document.getElementById("race-status")
+const startBtn = document.getElementById("start")
 const safeBtn = document.getElementById("safe")
 const hazardBtn = document.getElementById("hazard")
 const dangerBtn = document.getElementById("danger")
 const finishBtn = document.getElementById("finish")
-const endSessionBtn = document.getElementById("endSession")
+const endSessionBtn = document.getElementById("end-session")
+
+endSessionBtn.style.display = "none"
 
 function askSafetyKey() {
 
@@ -41,24 +44,44 @@ function setMode(mode) {
 
     socket.emit("race:mode:set", mode)
 
+    status.innerText = "Mode: " + mode
+
     if (mode === "FINISH") {
         raceFinished = true
         endSessionBtn.style.display = "inline"
+
+        safeBtn.disabled = true
+        hazardBtn.disabled = true
+        dangerBtn.disabled = true
     }
+
+}
+
+function updateStatus(mode) {
+
+    status.innerText = "Mode: " + mode
+
+    if (mode === "SAFE") status.style.color = "lime"
+    if (mode === "HAZARD") status.style.color = "yellow"
+    if (mode === "DANGER") status.style.color = "red"
+    if (mode === "FINISH") status.style.color = "cyan"
 
 }
 
 endSessionBtn.onclick = () => {
 
-    socket.emit("race:endSession",)
+    socket.emit("race:endSession")
 
 }
 
 socket.on("state:update", (state) => {
 
     if (state.raceMode === "FINISH") {
+
         raceFinished = true
         endSessionBtn.style.display = "inline"
+
     }
+
 })
 
