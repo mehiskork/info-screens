@@ -33,6 +33,7 @@ keyForm.addEventListener("submit", (e) => {
 });
 
 let sessionCount = 0;
+let driverCount = 0;
 
 addSessionBtn.addEventListener("click", () => {
     sessionCount += 1;
@@ -63,14 +64,29 @@ addSessionBtn.addEventListener("click", () => {
     })
 
     const addDriverBtn = sessionCard.querySelector(".add-driver-btn")
+
     addDriverBtn.addEventListener("click", () => {
-        addDriverBtn.textContent = "Hello";
+        driverCount += 1;
+        errorMessage.textContent = "";
+
+        if (driverCount <= 8) {
+            const driver = document.createElement("p")
+            driver.classList.add("driver");
+            driver.textContent = `Driver ${driverCount}`
+            sessionCard.appendChild(driver);
+        } else {
+            errorMessage.textContent = "Maximum 8 drivers per session";
+        }
+
+
 
     })
-
 
 
     sessionsContainer.appendChild(sessionCard);
 
 });
+
+
+
 
