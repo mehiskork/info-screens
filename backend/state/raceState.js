@@ -134,6 +134,52 @@ function removeDriver(sessionId, driverName) {
   return { success: true }
 }
 
+// ============ RACE CONTROL ============
+
+/**
+ * Start a race session
+ * Initializes currentRace with lap tracking for all drivers
+ */
+function startRace(sessionId) {
+  // Find the session
+  const session = getSessionById(sessionId)
+  if (!session) {
+    return { success: false, error: 'Session not found' }
+  }
+  
+  // Check if session has drivers
+  if (session.drivers.length === 0) {
+    return { success: false, error: 'Cannot start race with no drivers' }
+  }
+  
+  // Check if a race is already active
+  if (state.currentRace.sessionId !== null) {
+    return { success: false, error: 'A race is already in progress' }
+  }
+  
+  // Initialize lap tracking for each car
+  const laps = {}
+  for (const driver of session.drivers) {
+    laps[driver.carNumber] = {
+      currentLap: 0,
+      bestTime: null,
+      lapTimes: [],
+      lastCrossTime: null
+    }
+  }
+  
+  // Set up currentRace
+  state.currentRace = {
+    sessionId: sessionId,
+    drivers: JSON.parse(JSON.stringify(session.drivers)), // deep copy
+    mode: 'safe',
+    startTime: Date.now(),
+    laps: laps
+  }
+  
+  return { success: true, race: JSON.parse(JSON.stringify(state.currentRace)) }
+}
+
 module.exports = {
   addSession,
   getAllSessions,
@@ -141,5 +187,6 @@ module.exports = {
   addDriver,
   getNextRaceSession,
   removeSession,
-  removeDriver
+  removeDriver,
+  startRace
 }

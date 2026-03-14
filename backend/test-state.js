@@ -7,7 +7,8 @@ const {
   addDriver,
   removeDriver,
   removeSession,
-  getNextRaceSession
+  getNextRaceSession,
+  startRace
 } = require('./state/raceState')
 
 console.log('=== Testing Race State Functions ===\n')
@@ -82,6 +83,24 @@ console.log('Sessions before removal:', getAllSessions().map(s => s.id))
 removeSession(2)
 console.log('Sessions after removing session 2:', getAllSessions().map(s => s.id))
 console.log('✓ Session removed\n')
+
+// Test 10: Start a race
+console.log('Test 10: Start a race...')
+const raceStart = startRace(1)
+console.log('Race started:', raceStart.success ? 'Success' : `Failed: ${raceStart.error}`)
+if (raceStart.success) {
+  console.log('Session ID:', raceStart.race.sessionId)
+  console.log('Mode:', raceStart.race.mode)
+  console.log('Drivers in race:', raceStart.race.drivers.length)
+  console.log('Cars initialized:', Object.keys(raceStart.race.laps))
+  console.log('✓ Race started successfully\n')
+}
+
+// Test 11: Try to start another race (should fail)
+console.log('Test 11: Try to start second race while one is active...')
+const doubleStart = startRace(1)
+console.log('Result:', doubleStart)
+console.log(doubleStart.success ? '✗ Should have failed!' : '✓ Correctly prevented\n')
 
 console.log('=== All Tests Complete ===')
 console.log('\nTo clean up, delete this test file: rm backend/test-state.js')
