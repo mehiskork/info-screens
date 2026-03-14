@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket.IO Test</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    button { padding: 10px 20px; margin: 5px; font-size: 16px; }
+    pre { background: #f4f4f4; padding: 10px; border-radius: 5px; }
+    .success { color: green; }
+    .error { color: red; }
+  </style>
+</head>
+<body>
+  <h1>Socket.IO Backend Test</h1>
+  
+  <h2>Connection Status</h2>
+  <div id="status">Disconnected</div>
+  
+  <h2>Test: Get All Sessions</h2>
+  <button onclick="getSessions()">Get Sessions</button>
+  
+  <h3>Response:</h3>
+  <pre id="output">Click button to test...</pre>
+  
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io()
+    const statusDiv = document.getElementById('status')
+    const outputDiv = document.getElementById('output')
+    
+    socket.on('connect', () => {
+      statusDiv.innerHTML = '<span class="success">✓ Connected</span>'
+      console.log('Connected:', socket.id)
+    })
+    
+    socket.on('disconnect', () => {
+      statusDiv.innerHTML = '<span class="error">✗ Disconnected</span>'
+    })
+    
+    function getSessions() {
+      socket.emit('getSessions', (response) => {
+        outputDiv.textContent = JSON.stringify(response, null, 2)
+      })
+    }
+  </script>
+</body>
+</html>

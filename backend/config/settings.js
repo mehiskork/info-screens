@@ -1,4 +1,5 @@
-require('dotenv').config()
+const path = require('path')
+require('dotenv').config({ path: path.join(__dirname, '../../.env') })
 
 // Check if we're in development mode based on an environment variable
 // npm run dev -- starts the server in development mode

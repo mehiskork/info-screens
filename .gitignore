@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Project notes
+context.txt
+requirements.md
+implementation.md
+project_steps.md
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# misc
+.vscode/settings.json
+.idea/
+backend/test-state.js
