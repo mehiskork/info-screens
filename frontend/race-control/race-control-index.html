@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Race Control</title>
+    <link rel="stylesheet" href="race-control-style.css">
+</head>
+
+<body class="dark">
+
+    <div id="race-panel">
+
+        <h2>Race Control</h2>
+
+        <div id="race-status">Mode: DANGER</div>
+
+        <button id="start" class="button1">Start Race</button>
+
+        <div class="mode-buttons">
+
+            <button id="safe" class="button1 safe">SAFE</button>
+            <button id="hazard" class="button1 hazard">HAZARD</button>
+            <button id="danger" class="button1 danger">DANGER</button>
+            <button id="finish" class="button1 finish">FINISH</button>
+
+        </div>
+
+        <button id="end-session" class="button1">End Session</button>
+
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="race-control.js"></script>
+
+</body>
+
+</html>

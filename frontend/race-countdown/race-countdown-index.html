@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Race Countdown</title>
+
+    <style>
+        body {
+            background: black;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-size: 120px;
+            font-family: Arial;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div id="timer">00:00</div>
+
+    <button id="fullscreen" style="position:absolute;top:20px;right:20px;">
+        Fullscreen
+    </button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="race-countdown.js"></script>
+
+</body>
+
+</html>
