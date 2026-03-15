@@ -11,7 +11,10 @@ const {
   removeDriver,
   getNextRaceSession,
   startRace,
-  changeRaceMode
+  changeRaceMode,
+  getCurrentRaceStatus,
+  recordLapCrossing,
+  getLeaderboard
 } = require('../state/raceState')
 
 /**
@@ -71,6 +74,25 @@ function initializeSocketHandlers(io) {
     socket.on('race:changeMode', (data, callback) => {
       const { mode } = data
       const result = changeRaceMode(mode)
+      callback(result)
+    })
+    
+    // Get current race status
+    socket.on('getRaceStatus', (callback) => {
+      const result = getCurrentRaceStatus()
+      callback(result)
+    })
+    
+    // Record lap crossing
+    socket.on('lap:crossing', (data, callback) => {
+      const { carNumber, timestamp } = data
+      const result = recordLapCrossing(carNumber, timestamp)
+      callback(result)
+    })
+    
+    // Get leaderboard
+    socket.on('getLeaderboard', (callback) => {
+      const result = getLeaderboard()
       callback(result)
     })
     

@@ -1,3 +1,5 @@
+const { RACE_DURATION } = require('../config/settings')
+
 const state = {
   nextSessionId: 1,  // counter for generating IDs
   
@@ -226,6 +228,116 @@ function changeRaceMode(mode) {
   return { success: true, mode: state.currentRace.mode }
 }
 
+/**
+ * Get current race status with time remaining
+ * Returns race data with calculated seconds remaining
+ */
+function getCurrentRaceStatus() {
+  // Check if a race is active
+  if (state.currentRace.sessionId === null) {
+    return { success: false, error: 'No active race' }
+  }
+  
+  // Calculate time remaining
+  const elapsedSeconds = Math.floor((Date.now() - state.currentRace.startTime) / 1000)
+  const secondsRemaining = Math.max(0, RACE_DURATION - elapsedSeconds)
+  
+  // Return race data with time remaining
+  return {
+    success: true,
+    race: {
+      ...JSON.parse(JSON.stringify(state.currentRace)),
+      secondsRemaining,
+      totalDuration: RACE_DURATION
+    }
+  }
+}
+
+/**
+ * Record a lap crossing for a car
+ * Calculates lap time if this is not the first crossing
+ */
+function recordLapCrossing(carNumber, timestamp = Date.now()) {
+  // Check if a race is active
+  if (state.currentRace.sessionId === null) {
+    return { success: false, error: 'No active race' }
+  }
+  
+  // Validate car number exists in this race
+  if (!state.currentRace.laps[carNumber]) {
+    return { success: false, error: 'Car not in this race' }
+  }
+  
+  const carLaps = state.currentRace.laps[carNumber]
+  
+  // If this is the first crossing, just record the time
+  if (carLaps.lastCrossTime === null) {
+    carLaps.lastCrossTime = timestamp
+    carLaps.currentLap = 1
+    return { 
+      success: true, 
+      lap: 1,
+      message: 'First lap started'
+    }
+  }
+  
+  // Calculate lap time (time since last crossing)
+  const lapTime = timestamp - carLaps.lastCrossTime
+  
+  // Store lap time
+  carLaps.lapTimes.push(lapTime)
+  carLaps.currentLap++
+  carLaps.lastCrossTime = timestamp
+  
+  // Update best time if this is faster
+  if (carLaps.bestTime === null || lapTime < carLaps.bestTime) {
+    carLaps.bestTime = lapTime
+  }
+  
+  return {
+    success: true,
+    lap: carLaps.currentLap,
+    lapTime: lapTime,
+    bestTime: carLaps.bestTime
+  }
+}
+
+/**
+ * Get leaderboard sorted by best lap time
+ * Returns drivers sorted by fastest lap (fastest first)
+ */
+function getLeaderboard() {
+  // Check if a race is active
+  if (state.currentRace.sessionId === null) {
+    return { success: false, error: 'No active race' }
+  }
+  
+  // Build leaderboard with driver and lap data
+  const leaderboard = state.currentRace.drivers.map(driver => {
+    const lapData = state.currentRace.laps[driver.carNumber]
+    return {
+      name: driver.name,
+      carNumber: driver.carNumber,
+      bestTime: lapData.bestTime,
+      currentLap: lapData.currentLap,
+      lapTimes: lapData.lapTimes.length
+    }
+  })
+  
+  // Sort by best time (fastest first, drivers with no time go last)
+  leaderboard.sort((a, b) => {
+    if (a.bestTime === null && b.bestTime === null) return 0
+    if (a.bestTime === null) return 1
+    if (b.bestTime === null) return -1
+    return a.bestTime - b.bestTime
+  })
+  
+  return {
+    success: true,
+    leaderboard: leaderboard
+  }
+}
+
 module.exports = {
   addSession,
   getAllSessions,
@@ -235,5 +347,8 @@ module.exports = {
   removeSession,
   removeDriver,
   startRace,
-  changeRaceMode
+  changeRaceMode,
+  getCurrentRaceStatus,
+  recordLapCrossing,
+  getLeaderboard
 }

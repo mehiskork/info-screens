@@ -2,7 +2,7 @@
 
 **Server:** `http://localhost:3000` (or your deployed URL)  
 **Protocol:** Socket.IO v4.x  
-**Status:** � Session Management & Race Control Implemented (Auth pending)
+**Status:** ✓ Session Management, Race Control & Lap Timing Implemented (Auth pending)
 
 ---
 
@@ -231,6 +231,107 @@ socket.emit('race:changeMode', { mode: 'racing' }, (response) => {
 
 ---
 
+### Race Status & Timing
+
+#### Get Current Race Status
+
+**Event:** `getRaceStatus`  
+**Auth:** None (public)  
+**Payload:** None  
+**Response:** `{ success: boolean, race?: Object, error?: string }`
+
+```javascript
+socket.emit('getRaceStatus', (response) => {
+  if (response.success) {
+    console.log('Race:', response.race)
+    // response.race = {
+    //   sessionId: 1,
+    //   drivers: [...],
+    //   mode: "racing",
+    //   startTime: 1234567890,
+    //   laps: {...},
+    //   secondsRemaining: 45,
+    //   totalDuration: 60
+    // }
+  } else {
+    console.error(response.error) // "No active race"
+  }
+})
+```
+
+**Notes:**
+- `secondsRemaining` counts down from race duration to 0
+- `totalDuration` is 60 seconds in DEV mode, 600 seconds in production
+- Used by spectator displays to show time remaining
+
+---
+
+#### Record Lap Crossing
+
+**Event:** `lap:crossing`  
+**Auth:** None (pending - lap-line observer only)  
+**Payload:** `{ carNumber: number, timestamp?: number }`  
+**Response:** `{ success: boolean, lap?: number, lapTime?: number, bestTime?: number, message?: string, error?: string }`
+
+```javascript
+socket.emit('lap:crossing', { carNumber: 1, timestamp: Date.now() }, (response) => {
+  if (response.success) {
+    if (response.message) {
+      console.log(response.message) // "First lap started"
+    } else {
+      console.log(`Lap ${response.lap} completed in ${response.lapTime}ms`)
+      console.log(`Best time: ${response.bestTime}ms`)
+    }
+  } else {
+    console.error(response.error)
+    // "No active race" or "Car not in this race"
+  }
+})
+```
+
+**Notes:**
+- First crossing starts lap 1, subsequent crossings complete laps and record times
+- `timestamp` is optional (defaults to `Date.now()`)
+- Lap times are in milliseconds
+- Best time is automatically tracked and updated
+- Works in all race modes (safe, racing, paused, finished)
+
+---
+
+#### Get Leaderboard
+
+**Event:** `getLeaderboard`  
+**Auth:** None (public)  
+**Payload:** None  
+**Response:** `{ success: boolean, leaderboard?: Array, error?: string }`
+
+```javascript
+socket.emit('getLeaderboard', (response) => {
+  if (response.success) {
+    console.log('Leaderboard:', response.leaderboard)
+    // response.leaderboard = [
+    //   {
+    //     name: "Alice",
+    //     carNumber: 1,
+    //     bestTime: 34567,      // milliseconds, null if no laps completed
+    //     currentLap: 5,
+    //     lapTimes: 4           // number of completed laps
+    //   },
+    //   ...
+    // ]
+  } else {
+    console.error(response.error) // "No active race"
+  }
+})
+```
+
+**Notes:**
+- Sorted by `bestTime` (fastest first)
+- Drivers with no completed laps (`bestTime: null`) appear last
+- Used by spectator display screens
+
+---
+
 ## Testing
 
 Test page available at: `http://localhost:3000/test.html`
@@ -253,6 +354,13 @@ socket.on('connect', () => {
     
     // 4. Change mode
     socket.emit('race:changeMode', { mode: 'racing' }, console.log)
+    
+    // 5. Record lap crossings
+    socket.emit('lap:crossing', { carNumber: 1 }, console.log)
+    setTimeout(() => {
+      socket.emit('lap:crossing', { carNumber: 1 }, console.log) // Complete lap
+      socket.emit('getLeaderboard', console.log) // Check standings
+    }, 3000)
   })
 })
 ```
@@ -266,25 +374,25 @@ socket.on('connect', () => {
 - `auth:safety` - Authenticate safety official
 - `auth:observer` - Authenticate observer
 
-### Lap Tracking
-- `lap:crossing` - Record car crossing lap line
-- `getLeaderboard` - Get sorted results by best lap time
-
-### Race Status
-- `getCurrentRaceStatus` - Get current race with time remaining
+### Session Control
+- `race:endSession` - Formally end race session after cars return to pit
 
 ### Real-time Broadcasting
 - Auto-broadcast session changes to all clients
 - Auto-broadcast race updates to all clients
+- Auto-broadcast lap times to all clients
 
 ---
 
 ## For Frontend Team
 
-**Current Status:** All session management and basic race control events are functional. You can:
+**Current Status:** Core racing features are fully functional. You can:
 - Create and manage sessions
 - Add/remove drivers (auto car assignment 1-8)
-- Start races and control race modes
+- Start races and control race modes (safe/racing/paused/finished)
 - Query next race in queue
+- Record lap crossings and calculate lap times
+- Get real-time leaderboard sorted by best lap time
+- Get race status with time remaining
 
-**Pending:** Authentication, lap timing, leaderboards, real-time broadcasting
+**Pending:** Authentication, real-time broadcasting, formal session end event
