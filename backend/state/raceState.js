@@ -302,6 +302,42 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
   }
 }
 
+/**
+ * Get leaderboard sorted by best lap time
+ * Returns drivers sorted by fastest lap (fastest first)
+ */
+function getLeaderboard() {
+  // Check if a race is active
+  if (state.currentRace.sessionId === null) {
+    return { success: false, error: 'No active race' }
+  }
+  
+  // Build leaderboard with driver and lap data
+  const leaderboard = state.currentRace.drivers.map(driver => {
+    const lapData = state.currentRace.laps[driver.carNumber]
+    return {
+      name: driver.name,
+      carNumber: driver.carNumber,
+      bestTime: lapData.bestTime,
+      currentLap: lapData.currentLap,
+      lapTimes: lapData.lapTimes.length
+    }
+  })
+  
+  // Sort by best time (fastest first, drivers with no time go last)
+  leaderboard.sort((a, b) => {
+    if (a.bestTime === null && b.bestTime === null) return 0
+    if (a.bestTime === null) return 1
+    if (b.bestTime === null) return -1
+    return a.bestTime - b.bestTime
+  })
+  
+  return {
+    success: true,
+    leaderboard: leaderboard
+  }
+}
+
 module.exports = {
   addSession,
   getAllSessions,
@@ -313,5 +349,6 @@ module.exports = {
   startRace,
   changeRaceMode,
   getCurrentRaceStatus,
-  recordLapCrossing
+  recordLapCrossing,
+  getLeaderboard
 }
