@@ -253,6 +253,55 @@ function getCurrentRaceStatus() {
   }
 }
 
+/**
+ * Record a lap crossing for a car
+ * Calculates lap time if this is not the first crossing
+ */
+function recordLapCrossing(carNumber, timestamp = Date.now()) {
+  // Check if a race is active
+  if (state.currentRace.sessionId === null) {
+    return { success: false, error: 'No active race' }
+  }
+  
+  // Validate car number exists in this race
+  if (!state.currentRace.laps[carNumber]) {
+    return { success: false, error: 'Car not in this race' }
+  }
+  
+  const carLaps = state.currentRace.laps[carNumber]
+  
+  // If this is the first crossing, just record the time
+  if (carLaps.lastCrossTime === null) {
+    carLaps.lastCrossTime = timestamp
+    carLaps.currentLap = 1
+    return { 
+      success: true, 
+      lap: 1,
+      message: 'First lap started'
+    }
+  }
+  
+  // Calculate lap time (time since last crossing)
+  const lapTime = timestamp - carLaps.lastCrossTime
+  
+  // Store lap time
+  carLaps.lapTimes.push(lapTime)
+  carLaps.currentLap++
+  carLaps.lastCrossTime = timestamp
+  
+  // Update best time if this is faster
+  if (carLaps.bestTime === null || lapTime < carLaps.bestTime) {
+    carLaps.bestTime = lapTime
+  }
+  
+  return {
+    success: true,
+    lap: carLaps.currentLap,
+    lapTime: lapTime,
+    bestTime: carLaps.bestTime
+  }
+}
+
 module.exports = {
   addSession,
   getAllSessions,
@@ -263,5 +312,6 @@ module.exports = {
   removeDriver,
   startRace,
   changeRaceMode,
-  getCurrentRaceStatus
+  getCurrentRaceStatus,
+  recordLapCrossing
 }
