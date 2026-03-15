@@ -6,7 +6,9 @@
 const { 
   getAllSessions,
   addSession,
-  addDriver
+  addDriver,
+  removeSession,
+  removeDriver
 } = require('../state/raceState')
 
 /**
@@ -32,6 +34,20 @@ function initializeSocketHandlers(io) {
     socket.on('driver:add', (data, callback) => {
       const { sessionId, driverName } = data
       const result = addDriver(sessionId, driverName)
+      callback(result)
+    })
+    
+    // Remove a session
+    socket.on('session:remove', (data, callback) => {
+      const { sessionId } = data
+      const result = removeSession(sessionId)
+      callback(result)
+    })
+    
+    // Remove a driver from a session
+    socket.on('driver:remove', (data, callback) => {
+      const { sessionId, driverName } = data
+      const result = removeDriver(sessionId, driverName)
       callback(result)
     })
     

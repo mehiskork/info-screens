@@ -27,6 +27,15 @@
   <label>Driver Name: <input id="driverName" type="text" value="Alice"></label><br>
   <button onclick="addDriver()">Add Driver</button>
   
+  <h2>Test: Remove Driver</h2>
+  <label>Session ID: <input id="removeSessionId" type="number" value="1"></label><br>
+  <label>Driver Name: <input id="removeDriverName" type="text" value="Alice"></label><br>
+  <button onclick="removeDriver()">Remove Driver</button>
+  
+  <h2>Test: Remove Session</h2>
+  <label>Session ID: <input id="deleteSessionId" type="number" value="1"></label><br>
+  <button onclick="removeSession()">Remove Session</button>
+  
   <h3>Response:</h3>
   <pre id="output">Click button to test...</pre>
   
@@ -62,6 +71,23 @@
       const driverName = document.getElementById('driverName').value
       
       socket.emit('driver:add', { sessionId, driverName }, (response) => {
+        outputDiv.textContent = JSON.stringify(response, null, 2)
+      })
+    }
+    
+    function removeDriver() {
+      const sessionId = parseInt(document.getElementById('removeSessionId').value)
+      const driverName = document.getElementById('removeDriverName').value
+      
+      socket.emit('driver:remove', { sessionId, driverName }, (response) => {
+        outputDiv.textContent = JSON.stringify(response, null, 2)
+      })
+    }
+    
+    function removeSession() {
+      const sessionId = parseInt(document.getElementById('deleteSessionId').value)
+      
+      socket.emit('session:remove', { sessionId }, (response) => {
         outputDiv.textContent = JSON.stringify(response, null, 2)
       })
     }
