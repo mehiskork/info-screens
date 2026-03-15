@@ -1,3 +1,5 @@
+const { RACE_DURATION } = require('../config/settings')
+
 const state = {
   nextSessionId: 1,  // counter for generating IDs
   
@@ -226,6 +228,31 @@ function changeRaceMode(mode) {
   return { success: true, mode: state.currentRace.mode }
 }
 
+/**
+ * Get current race status with time remaining
+ * Returns race data with calculated seconds remaining
+ */
+function getCurrentRaceStatus() {
+  // Check if a race is active
+  if (state.currentRace.sessionId === null) {
+    return { success: false, error: 'No active race' }
+  }
+  
+  // Calculate time remaining
+  const elapsedSeconds = Math.floor((Date.now() - state.currentRace.startTime) / 1000)
+  const secondsRemaining = Math.max(0, RACE_DURATION - elapsedSeconds)
+  
+  // Return race data with time remaining
+  return {
+    success: true,
+    race: {
+      ...JSON.parse(JSON.stringify(state.currentRace)),
+      secondsRemaining,
+      totalDuration: RACE_DURATION
+    }
+  }
+}
+
 module.exports = {
   addSession,
   getAllSessions,
@@ -235,5 +262,6 @@ module.exports = {
   removeSession,
   removeDriver,
   startRace,
-  changeRaceMode
+  changeRaceMode,
+  getCurrentRaceStatus
 }

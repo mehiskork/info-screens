@@ -54,6 +54,9 @@
   </label><br>
   <button onclick="changeRaceMode()">Change Mode</button>
   
+  <h2>Test: Get Race Status</h2>
+  <button onclick="getRaceStatus()">Get Race Status</button>
+  
   <h3>Response:</h3>
   <pre id="output">Click button to test...</pre>
   
@@ -128,6 +131,12 @@
       const mode = document.getElementById('raceMode').value
       
       socket.emit('race:changeMode', { mode }, (response) => {
+        outputDiv.textContent = JSON.stringify(response, null, 2)
+      })
+    }
+    
+    function getRaceStatus() {
+      socket.emit('getRaceStatus', (response) => {
         outputDiv.textContent = JSON.stringify(response, null, 2)
       })
     }

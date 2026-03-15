@@ -11,7 +11,8 @@ const {
   removeDriver,
   getNextRaceSession,
   startRace,
-  changeRaceMode
+  changeRaceMode,
+  getCurrentRaceStatus
 } = require('../state/raceState')
 
 /**
@@ -71,6 +72,12 @@ function initializeSocketHandlers(io) {
     socket.on('race:changeMode', (data, callback) => {
       const { mode } = data
       const result = changeRaceMode(mode)
+      callback(result)
+    })
+    
+    // Get current race status
+    socket.on('getRaceStatus', (callback) => {
+      const result = getCurrentRaceStatus()
       callback(result)
     })
     
