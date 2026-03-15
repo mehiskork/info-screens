@@ -22,6 +22,11 @@
   <h2>Test: Add Session</h2>
   <button onclick="addSession()">Add Session</button>
   
+  <h2>Test: Add Driver</h2>
+  <label>Session ID: <input id="sessionId" type="number" value="1"></label><br>
+  <label>Driver Name: <input id="driverName" type="text" value="Alice"></label><br>
+  <button onclick="addDriver()">Add Driver</button>
+  
   <h3>Response:</h3>
   <pre id="output">Click button to test...</pre>
   
@@ -48,6 +53,15 @@
     
     function addSession() {
       socket.emit('session:add', (response) => {
+        outputDiv.textContent = JSON.stringify(response, null, 2)
+      })
+    }
+    
+    function addDriver() {
+      const sessionId = parseInt(document.getElementById('sessionId').value)
+      const driverName = document.getElementById('driverName').value
+      
+      socket.emit('driver:add', { sessionId, driverName }, (response) => {
         outputDiv.textContent = JSON.stringify(response, null, 2)
       })
     }
