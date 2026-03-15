@@ -98,9 +98,9 @@ function addDriver(sessionId, driverName) {
  */
 function getNextRaceSession() {
   if (state.sessions.length === 0) {
-    return null
+    return { success: false, error: 'No queued sessions' }
   }
-  return JSON.parse(JSON.stringify(state.sessions[0]))
+  return { success: true, data: JSON.parse(JSON.stringify(state.sessions[0])) }
 }
 
 /**
@@ -180,6 +180,52 @@ function startRace(sessionId) {
   return { success: true, race: JSON.parse(JSON.stringify(state.currentRace)) }
 }
 
+/**
+ * Change race mode
+ * Valid modes: 'safe', 'racing', 'paused', 'finished'
+ * If mode is 'finished', the race ends and moves to lastFinishedRace
+ */
+function changeRaceMode(mode) {
+  // Check if a race is active
+  if (state.currentRace.sessionId === null) {
+    return { success: false, error: 'No active race' }
+  }
+  
+  // Validate mode
+  const validModes = ['safe', 'racing', 'paused', 'finished']
+  if (!validModes.includes(mode)) {
+    return { success: false, error: 'Invalid mode. Must be: safe, racing, paused, or finished' }
+  }
+  
+  // If finishing the race, move it to lastFinishedRace and reset currentRace
+  if (mode === 'finished') {
+    state.currentRace.mode = 'finished'
+    state.lastFinishedRace = JSON.parse(JSON.stringify(state.currentRace))
+    
+    // Remove the finished session from the queue
+    const sessionId = state.currentRace.sessionId
+    const index = state.sessions.findIndex(s => s.id === sessionId)
+    if (index !== -1) {
+      state.sessions.splice(index, 1)
+    }
+    
+    // Reset current race
+    state.currentRace = {
+      sessionId: null,
+      mode: null,
+      startTime: null,
+      laps: {}
+    }
+    
+    return { success: true, message: 'Race finished and session removed from queue' }
+  }
+  
+  // Update mode for non-finished states
+  state.currentRace.mode = mode
+  
+  return { success: true, mode: state.currentRace.mode }
+}
+
 module.exports = {
   addSession,
   getAllSessions,
@@ -188,5 +234,6 @@ module.exports = {
   getNextRaceSession,
   removeSession,
   removeDriver,
-  startRace
+  startRace,
+  changeRaceMode
 }
