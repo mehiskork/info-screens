@@ -19,6 +19,9 @@
   <h2>Test: Get All Sessions</h2>
   <button onclick="getSessions()">Get Sessions</button>
   
+  <h2>Test: Get Next Race</h2>
+  <button onclick="getNextRace()">Get Next Race</button>
+  
   <h2>Test: Add Session</h2>
   <button onclick="addSession()">Add Session</button>
   
@@ -56,6 +59,12 @@
     
     function getSessions() {
       socket.emit('getSessions', (response) => {
+        outputDiv.textContent = JSON.stringify(response, null, 2)
+      })
+    }
+    
+    function getNextRace() {
+      socket.emit('getNextRace', (response) => {
         outputDiv.textContent = JSON.stringify(response, null, 2)
       })
     }

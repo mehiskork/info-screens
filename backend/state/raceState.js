@@ -98,9 +98,9 @@ function addDriver(sessionId, driverName) {
  */
 function getNextRaceSession() {
   if (state.sessions.length === 0) {
-    return null
+    return { success: false, error: 'No queued sessions' }
   }
-  return JSON.parse(JSON.stringify(state.sessions[0]))
+  return { success: true, data: JSON.parse(JSON.stringify(state.sessions[0])) }
 }
 
 /**
