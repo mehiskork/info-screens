@@ -9,7 +9,8 @@ const {
   addDriver,
   removeSession,
   removeDriver,
-  getNextRaceSession
+  getNextRaceSession,
+  startRace
 } = require('../state/raceState')
 
 /**
@@ -55,6 +56,13 @@ function initializeSocketHandlers(io) {
     // Get the next race session
     socket.on('getNextRace', (callback) => {
       const result = getNextRaceSession()
+      callback(result)
+    })
+    
+    // Start a race
+    socket.on('race:start', (data, callback) => {
+      const { sessionId } = data
+      const result = startRace(sessionId)
       callback(result)
     })
     

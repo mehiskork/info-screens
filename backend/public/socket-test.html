@@ -39,6 +39,10 @@
   <label>Session ID: <input id="deleteSessionId" type="number" value="1"></label><br>
   <button onclick="removeSession()">Remove Session</button>
   
+  <h2>Test: Start Race</h2>
+  <label>Session ID: <input id="startSessionId" type="number" value="1"></label><br>
+  <button onclick="startRace()">Start Race</button>
+  
   <h3>Response:</h3>
   <pre id="output">Click button to test...</pre>
   
@@ -97,6 +101,14 @@
       const sessionId = parseInt(document.getElementById('deleteSessionId').value)
       
       socket.emit('session:remove', { sessionId }, (response) => {
+        outputDiv.textContent = JSON.stringify(response, null, 2)
+      })
+    }
+    
+    function startRace() {
+      const sessionId = parseInt(document.getElementById('startSessionId').value)
+      
+      socket.emit('race:start', { sessionId }, (response) => {
         outputDiv.textContent = JSON.stringify(response, null, 2)
       })
     }
