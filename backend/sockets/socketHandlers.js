@@ -3,7 +3,10 @@
  * Step-by-step implementation
  */
 
-const { getAllSessions } = require('../state/raceState')
+const { 
+  getAllSessions,
+  addSession
+} = require('../state/raceState')
 
 /**
  * Initialize Socket.IO event handlers
@@ -12,10 +15,16 @@ function initializeSocketHandlers(io) {
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id)
     
-    // Simple event: Get all sessions
+    // Get all sessions
     socket.on('getSessions', (callback) => {
       const sessions = getAllSessions()
       callback({ success: true, sessions })
+    })
+    
+    // Add a new session
+    socket.on('session:add', (callback) => {
+      const newSession = addSession()
+      callback({ success: true, session: newSession })
     })
     
     socket.on('disconnect', () => {

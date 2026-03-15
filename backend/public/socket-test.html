@@ -19,6 +19,9 @@
   <h2>Test: Get All Sessions</h2>
   <button onclick="getSessions()">Get Sessions</button>
   
+  <h2>Test: Add Session</h2>
+  <button onclick="addSession()">Add Session</button>
+  
   <h3>Response:</h3>
   <pre id="output">Click button to test...</pre>
   
@@ -39,6 +42,12 @@
     
     function getSessions() {
       socket.emit('getSessions', (response) => {
+        outputDiv.textContent = JSON.stringify(response, null, 2)
+      })
+    }
+    
+    function addSession() {
+      socket.emit('session:add', (response) => {
         outputDiv.textContent = JSON.stringify(response, null, 2)
       })
     }
