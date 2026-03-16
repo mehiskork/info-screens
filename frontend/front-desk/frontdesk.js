@@ -33,7 +33,7 @@ keyForm.addEventListener("submit", (e) => {
 });
 
 let sessionCount = 0;
-let driverCount = 0;
+
 
 addSessionBtn.addEventListener("click", () => {
     sessionCount += 1;
@@ -47,11 +47,23 @@ addSessionBtn.addEventListener("click", () => {
         <h3>Session ${sessionCount}</h3>
 
         <!--Placeholder until drivers are added-->
-        <p>No drivers yet</p>
+        <p class="no-drivers-text">No drivers yet</p>
 
-        <!-- adds Remove and driver button to every session-->
+        <form class="driver-input">
+         <input class="input2" type="text" placeholder="Enter driver´s name" />
+         <button class="add-driver-btn" type="submit">Add Driver</button>
+         </form>
+
+        <div class="drivers-container">
+        <p class="drivers-error"></p>
+        
+        </div>
+
+       
+
+        <!-- adds remove session and add driver button to every session-->
         <button class="rmv-session-btn" type="button">Remove Session</button>
-        <button class="add-driver-btn" type="button">Add Driver</button>
+        
 
         `;
 
@@ -63,24 +75,85 @@ addSessionBtn.addEventListener("click", () => {
 
     })
 
-    const addDriverBtn = sessionCard.querySelector(".add-driver-btn")
 
-    addDriverBtn.addEventListener("click", () => {
-        driverCount += 1;
-        errorMessage.textContent = "";
+    const noDriversText = sessionCard.querySelector(".no-drivers-text")
+    const driversContainer = sessionCard.querySelector(".drivers-container")
+    const driversError = sessionCard.querySelector(".drivers-error")
+    const driverInput = sessionCard.querySelector(".driver-input");
+    const driverNameInput = sessionCard.querySelector(".input2")
 
-        if (driverCount <= 8) {
-            const driver = document.createElement("p")
-            driver.classList.add("driver");
-            driver.textContent = `Driver ${driverCount}`
-            sessionCard.appendChild(driver);
-        } else {
-            errorMessage.textContent = "Maximum 8 drivers per session";
+
+
+    let driverCount = 0;
+    const driverArr = [];
+
+
+
+    driverInput.addEventListener("submit", (e) => {
+
+
+        // prevents usual submit reaction and uses js
+        e.preventDefault();
+
+
+        const driverName = driverNameInput.value.trim();
+        const normalizedName = driverName.toLowerCase();
+
+        // removes errors if there were before
+        driversError.textContent = "";
+
+
+
+        // checks if the submit line is empty
+        if (driverName === "") {
+
+            driversError.textContent = "Enter the name of the driver"
+            return;
+
         }
 
 
+        // checks for duplicate names
 
-    })
+        for (let i = 0; i < driverArr.length; i++) {
+
+            if (normalizedName === driverArr[i]) {
+                driversError.textContent = "Name already in use";
+                return;
+
+            }
+
+        }
+
+
+        // adds driver if there is not 8 already
+        if (driverCount < 8) {
+
+            // remove placeholder
+            noDriversText.remove();
+
+
+            driverCount += 1;
+            const driver = document.createElement("p")
+            driver.classList.add("driver");
+            driver.textContent = driverName;
+
+            // adds name to array for checking duplicates
+            driverArr.push(normalizedName);
+            console.log(driverArr);
+
+            driversContainer.appendChild(driver);
+
+            // clears name from the input
+            driverNameInput.value = "";
+
+        } else {
+
+            driversError.textContent = "Maximum 8 drivers per session";
+
+        }
+
+    });
 
 
     sessionsContainer.appendChild(sessionCard);
