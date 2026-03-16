@@ -129,21 +129,16 @@ addSessionBtn.addEventListener("click", () => {
 
             // remove placeholder
             noDriversText.remove();
-
-
             driverCount += 1;
 
-
             const driverRow = document.createElement("div")
-
 
             function showNormalRow(displayName) {
 
                 driverRow.innerHTML = `
-        <p class="driver">${displayName}</p>
-        <button class="edit-driver-btn" type="button">Edit</button>
-        <button class="rmv-driver-btn" type="button">Remove</button>
-    `;
+                     <p class="driver">${displayName}</p>
+                     <button class="edit-driver-btn" type="button">Edit</button>
+                     <button class="rmv-driver-btn" type="button">Remove</button> `;
 
                 const editDriverBtn = driverRow.querySelector(".edit-driver-btn");
                 const rmvDriverBtn = driverRow.querySelector(".rmv-driver-btn");
@@ -182,16 +177,24 @@ addSessionBtn.addEventListener("click", () => {
 
                 saveBtn.addEventListener("click", () => {
                     const newName = editInput.value.trim();
+                    const newNormalized = newName.toLowerCase();
+                    const oldNormalized = displayName.toLowerCase();
+
 
                     if (newName === "") {
                         driversError.textContent = "Enter the name of the driver";
                         return;
                     }
 
-                    driversError.textContent = "";
+                    for (let i = 0; i < driverArr.length; i++) {
+                        if (driverArr[i] === newNormalized && newNormalized !== oldNormalized) {
+                            driversError.textContent = "Name already in use";
+                            return;
+                        }
 
-                    const oldNormalized = displayName.toLowerCase();
-                    const newNormalized = newName.toLowerCase();
+                    }
+
+                    driversError.textContent = "";
 
                     const driverIndex = driverArr.indexOf(oldNormalized);
                     driverArr.splice(driverIndex, 1);
