@@ -54,10 +54,8 @@ addSessionBtn.addEventListener("click", () => {
          <button class="add-driver-btn" type="submit">Add Driver</button>
          </form>
 
-        <div class="drivers-container">
         <p class="drivers-error"></p>
-        
-        </div>
+        <div class="drivers-container"></div>
 
        
 
@@ -134,15 +132,85 @@ addSessionBtn.addEventListener("click", () => {
 
 
             driverCount += 1;
-            const driver = document.createElement("p")
-            driver.classList.add("driver");
-            driver.textContent = driverName;
+
+
+            const driverRow = document.createElement("div")
+
+
+            function showNormalRow(displayName) {
+
+                driverRow.innerHTML = `
+        <p class="driver">${displayName}</p>
+        <button class="edit-driver-btn" type="button">Edit</button>
+        <button class="rmv-driver-btn" type="button">Remove</button>
+    `;
+
+                const editDriverBtn = driverRow.querySelector(".edit-driver-btn");
+                const rmvDriverBtn = driverRow.querySelector(".rmv-driver-btn");
+
+                editDriverBtn.addEventListener("click", () => {
+                    showEditRow(displayName);
+                });
+
+                rmvDriverBtn.addEventListener("click", () => {
+                    driverRow.remove();
+                    driverCount -= 1;
+
+                    const driverIndex = driverArr.indexOf(displayName.trim().toLowerCase());
+                    driverArr.splice(driverIndex, 1);
+
+                    if (driverCount === 0) {
+                        driversContainer.appendChild(noDriversText);
+                    }
+                });
+            }
+
+
+            function showEditRow(displayName) {
+                driverRow.innerHTML = `
+             <input class="edit-driver-input" type="text" value="${displayName}">
+             <button class="save-driver-btn" type="button">Save</button>
+             <button class="cancel-driver-btn" type="button">Cancel</button>
+             `;
+                const editInput = driverRow.querySelector(".edit-driver-input");
+                const cancelBtn = driverRow.querySelector(".cancel-driver-btn");
+                const saveBtn = driverRow.querySelector(".save-driver-btn");
+
+                cancelBtn.addEventListener("click", () => {
+                    showNormalRow(displayName);
+                });
+
+                saveBtn.addEventListener("click", () => {
+                    const newName = editInput.value.trim();
+
+                    if (newName === "") {
+                        driversError.textContent = "Enter the name of the driver";
+                        return;
+                    }
+
+                    driversError.textContent = "";
+
+                    const oldNormalized = displayName.toLowerCase();
+                    const newNormalized = newName.toLowerCase();
+
+                    const driverIndex = driverArr.indexOf(oldNormalized);
+                    driverArr.splice(driverIndex, 1);
+                    driverArr.push(newNormalized);
+
+                    showNormalRow(newName);
+                });
+            }
+
+            driverRow.className = "driver-row"
+
+            showNormalRow(driverName);
+
 
             // adds name to array for checking duplicates
             driverArr.push(normalizedName);
             console.log(driverArr);
 
-            driversContainer.appendChild(driver);
+            driversContainer.appendChild(driverRow);
 
             // clears name from the input
             driverNameInput.value = "";
