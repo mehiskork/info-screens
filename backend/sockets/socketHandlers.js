@@ -9,6 +9,8 @@ const {
   addDriver,
   removeSession,
   removeDriver,
+  updateDriver,
+  authenticateReceptionist,
   getNextRaceSession,
   startRace,
   changeRaceMode,
@@ -54,6 +56,20 @@ function initializeSocketHandlers(io) {
     socket.on('driver:remove', (data, callback) => {
       const { sessionId, driverName } = data
       const result = removeDriver(sessionId, driverName)
+      callback(result)
+    })
+    
+    // Update a driver in a session
+    socket.on('driver:update', (data, callback) => {
+      const { sessionId, carNumber, newDriverName } = data
+      const result = updateDriver(sessionId, carNumber, newDriverName)
+      callback(result)
+    })
+    
+    // Authenticate receptionist
+    socket.on('auth:receptionist', async (data, callback) => {
+      const { accessKey } = data
+      const result = await authenticateReceptionist(accessKey)
       callback(result)
     })
     
