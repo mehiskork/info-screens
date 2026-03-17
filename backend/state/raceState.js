@@ -1,4 +1,4 @@
-const { RACE_DURATION } = require('../config/settings')
+const { RACE_DURATION, KEYS } = require('../config/settings')
 
 const state = {
   nextSessionId: 1,  // counter for generating IDs
@@ -134,6 +134,57 @@ function removeDriver(sessionId, driverName) {
   
   session.drivers.splice(index, 1)
   return { success: true }
+}
+
+/**
+ * Step 8: Update a driver in a session
+ * Can update driver name (must check for uniqueness)
+ * Cannot change car number as it's auto-assigned
+ */
+function updateDriver(sessionId, carNumber, newDriverName) {
+  // Validate inputs
+  if (!newDriverName || typeof newDriverName !== 'string' || newDriverName.trim() === '') {
+    return { success: false, error: 'Driver name is required' }
+  }
+  
+  // Find the session
+  const session = getSessionById(sessionId)
+  if (!session) {
+    return { success: false, error: 'Session not found' }
+  }
+  
+  // Find the driver by car number
+  const driver = session.drivers.find(d => d.carNumber === carNumber)
+  if (!driver) {
+    return { success: false, error: 'Driver not found in this session' }
+  }
+  
+  // Check if new name already exists (but allow same name if it's the same driver)
+  const nameExists = session.drivers.some(d => d.name === newDriverName && d.carNumber !== carNumber)
+  if (nameExists) {
+    return { success: false, error: 'Driver name must be unique in this session' }
+  }
+  
+  // Update the driver name
+  driver.name = newDriverName
+  
+  return { success: true, driver: { ...driver } }
+}
+
+// ============ AUTHENTICATION ============
+
+/**
+ * Authenticate receptionist access key
+ * Includes 500ms delay on wrong key (per requirements)
+ */
+async function authenticateReceptionist(accessKey) {
+  if (accessKey === KEYS.receptionist) {
+    return { success: true, role: 'receptionist' }
+  } else {
+    // 500ms delay on wrong key to prevent brute force
+    await new Promise(resolve => setTimeout(resolve, 500))
+    return { success: false, error: 'Invalid access key' }
+  }
 }
 
 // ============ RACE CONTROL ============
@@ -346,6 +397,8 @@ module.exports = {
   getNextRaceSession,
   removeSession,
   removeDriver,
+  updateDriver,
+  authenticateReceptionist,
   startRace,
   changeRaceMode,
   getCurrentRaceStatus,
