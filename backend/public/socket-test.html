@@ -35,6 +35,16 @@
   <label>Driver Name: <input id="removeDriverName" type="text" value="Alice"></label><br>
   <button onclick="removeDriver()">Remove Driver</button>
   
+  <h2>Test: Update Driver</h2>
+  <label>Session ID: <input id="updateSessionId" type="number" value="1"></label><br>
+  <label>Car Number: <input id="updateCarNumber" type="number" value="1" min="1" max="8"></label><br>
+  <label>New Driver Name: <input id="updateDriverName" type="text" value="Bob"></label><br>
+  <button onclick="updateDriver()">Update Driver</button>
+  
+  <h2>Test: Authenticate Receptionist</h2>
+  <label>Access Key: <input id="authKey" type="password" placeholder="Enter key"></label><br>
+  <button onclick="authenticateReceptionist()">Authenticate</button>
+  
   <h2>Test: Remove Session</h2>
   <label>Session ID: <input id="deleteSessionId" type="number" value="1"></label><br>
   <button onclick="removeSession()">Remove Session</button>
@@ -115,6 +125,29 @@
       
       socket.emit('driver:remove', { sessionId, driverName }, (response) => {
         outputDiv.textContent = JSON.stringify(response, null, 2)
+      })
+    }
+    
+    function updateDriver() {
+      const sessionId = parseInt(document.getElementById('updateSessionId').value)
+      const carNumber = parseInt(document.getElementById('updateCarNumber').value)
+      const newDriverName = document.getElementById('updateDriverName').value
+      
+      socket.emit('driver:update', { sessionId, carNumber, newDriverName }, (response) => {
+        outputDiv.textContent = JSON.stringify(response, null, 2)
+      })
+    }
+    
+    function authenticateReceptionist() {
+      const accessKey = document.getElementById('authKey').value
+      
+      outputDiv.textContent = 'Authenticating...'
+      const startTime = Date.now()
+      
+      socket.emit('auth:receptionist', { accessKey }, (response) => {
+        const elapsed = Date.now() - startTime
+        outputDiv.textContent = JSON.stringify(response, null, 2) + 
+          '\n\nResponse time: ' + elapsed + 'ms'
       })
     }
     

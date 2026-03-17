@@ -2,7 +2,7 @@
 
 **Server:** `http://localhost:3000` (or your deployed URL)  
 **Protocol:** Socket.IO v4.x  
-**Status:** ✓ Session Management, Race Control & Lap Timing Implemented (Auth pending)
+**Status:** ✓ Session Management, Race Control, Lap Timing & Receptionist Auth Implemented
 
 ---
 
@@ -160,6 +160,39 @@ socket.emit('driver:remove', { sessionId: 1, driverName: 'Alice' }, (response) =
   }
 })
 ```
+
+---
+
+#### Update Driver
+
+**Event:** `driver:update`  
+**Auth:** None (pending - receptionist only)  
+**Payload:** `{ sessionId: number, carNumber: number, newDriverName: string }`  
+**Response:** `{ success: boolean, driver?: Object, error?: string }`
+
+```javascript
+socket.emit('driver:update', { 
+  sessionId: 1, 
+  carNumber: 1, 
+  newDriverName: 'Alicia' 
+}, (response) => {
+  if (response.success) {
+    console.log('Driver updated:', response.driver)
+    // response.driver = { name: "Alicia", carNumber: 1 }
+  } else {
+    console.error(response.error)
+    // Possible errors:
+    // - "Session not found"
+    // - "Driver not found in this session"
+    // - "Driver name must be unique in this session"
+  }
+})
+```
+
+**Notes:**
+- Updates driver name only (car numbers cannot be changed)
+- New name must be unique within the session
+- Driver is identified by car number
 
 ---
 
@@ -367,12 +400,40 @@ socket.on('connect', () => {
 
 ---
 
+## Authentication
+
+### Authenticate Receptionist
+
+**Event:** `auth:receptionist`  
+**Payload:** `{ accessKey: string }`  
+**Response:** `{ success: boolean, role?: string, error?: string }`
+
+```javascript
+socket.emit('auth:receptionist', { accessKey: 'your-key-here' }, (response) => {
+  if (response.success) {
+    console.log('Authenticated as:', response.role)
+    // response.role = "receptionist"
+    // Grant access to front desk interface
+  } else {
+    console.error(response.error) // "Invalid access key"
+    // Note: Wrong key responses include a 500ms delay to prevent brute force
+  }
+})
+```
+
+**Notes:**
+- Correct key: Instant response (~1ms)
+- Wrong key: 500ms delay before response (security feature)
+- Access key stored in `.env` file as `RECEPTIONIST_KEY`
+- Used by front desk interface to authenticate receptionists
+
+---
+
 ## TODO - Not Yet Implemented
 
 ### Authentication
-- `auth:receptionist` - Authenticate receptionist
 - `auth:safety` - Authenticate safety official
-- `auth:observer` - Authenticate observer
+- `auth:observer` - Authenticate observer (lap-line observer)
 
 ### Session Control
 - `race:endSession` - Formally end race session after cars return to pit
@@ -386,13 +447,14 @@ socket.on('connect', () => {
 
 ## For Frontend Team
 
-**Current Status:** Core racing features are fully functional. You can:
+**Current Status:** Core racing features and receptionist authentication are fully functional. You can:
 - Create and manage sessions
-- Add/remove drivers (auto car assignment 1-8)
+- Add/remove/update drivers (auto car assignment 1-8)
+- Authenticate receptionists with access keys
 - Start races and control race modes (safe/racing/paused/finished)
 - Query next race in queue
 - Record lap crossings and calculate lap times
 - Get real-time leaderboard sorted by best lap time
 - Get race status with time remaining
 
-**Pending:** Authentication, real-time broadcasting, formal session end event
+**Pending:** Safety & observer authentication, real-time broadcasting, formal session end event
