@@ -1,6 +1,7 @@
 const express = require('express')
 const http = require('http')
 const { Server } = require('socket.io')
+const path = require('path')
 
 const { PORT, IS_DEV } = require('./config/settings')
 const initializeSocketHandlers = require('./sockets/socketHandlers')
@@ -16,6 +17,27 @@ app.use(express.static('public'))
 
 // Serve frontend files from parent directory
 app.use('/frontend', express.static('../frontend'))
+
+// Routes for frontend interfaces
+app.get('/front-desk', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/front-desk/index.html'))
+})
+
+app.get('/next-race', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/next-race/index.html'))
+})
+
+app.get('/race-control', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/race-control/race-control-index.html'))
+})
+
+app.get('/race-countdown', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/race-countdown/race-countdown-index.html'))
+})
+
+app.get('/race-flags', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/race-flags/race-flags-index.html'))
+})
 
 // Initialize Socket.IO event handlers
 initializeSocketHandlers(io)
