@@ -9,6 +9,7 @@ const sessionsContainer = document.getElementById("sessions-container");
 
 
 const MOCK_KEY = "1";
+let socket = null;
 
 keyForm.addEventListener("submit", (e) => {
 
@@ -21,17 +22,110 @@ keyForm.addEventListener("submit", (e) => {
     // clears old error text
     errorMessage.textContent = "";
 
-    // checks if accessKey is correct, hides lockScreen and shows frontDeskApp
-    if (accessKey === MOCK_KEY) {
-        lockScreen.hidden = true;
-        frontDeskApp.hidden = false;
-    } else {
-        errorMessage.textContent = "Invalid access key";
-    }
 
+    // checks if accessKey is correc
+    if (accessKey !== MOCK_KEY) {
+        errorMessage.textContent = "Invalid access key";
+        return;
+    }
+    // Guard against reconnecting twice
+    if (socket) return;
+
+    lockScreen.hidden = true;
+    frontDeskApp.hidden = false;
+    addSessionBtn.disabled = true;
+
+
+    // Calls the helper from shared/socket.js.
+    socket = createSocket();
+
+    //Server, give me sessions, and when you answer, run this code
+    socket.on("connect", () => {
+
+        console.log("socket connected");
+        loadSessions();
+    });
+
+    socket.on("connect_error", (err) => {
+        console.log("connect_error:", err.message);
+        errorMessage.textContent = err.message || "Connection failed";
+    });
 
 });
 
+function renderSessions(sessions) {
+    sessionsContainer.innerHTML = "";
+
+    // Loops through each session in the array and creates a card for each
+    sessions.forEach((session) => {
+        const card = document.createElement("div");
+        card.className = "session-card";
+        card.innerHTML = `<h3>Session ${session.id}</h3>`;
+        sessionsContainer.appendChild(card);
+    })
+}
+
+function loadSessions() {
+    if (!socket) {
+        console.log("No socket yet");
+        return;
+    }
+
+    socket.emit("getSessions", (response) => {
+        console.log("getSessions response:", response);
+
+        if (!response.success) {
+            errorMessage.textContent = response.error || "Could not load sessions";
+            return;
+        }
+
+        renderSessions(response.sessions);
+    });
+}
+
+addSessionBtn.addEventListener("click", () => {
+    if (!socket) {
+        errorMessage.textContent = "Connect first";
+        return;
+    }
+
+    console.log("sending session:add");
+
+    socket.emit("session:add", (response) => {
+        console.log("session:add response:", response);
+    })
+
+    if (!response.success) {
+        errorMessage.textContent = response.error || "Could not add session";
+        return;
+    }
+
+    loadSessions();
+
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 let sessionCount = 0;
 
 
@@ -230,7 +324,7 @@ addSessionBtn.addEventListener("click", () => {
     sessionsContainer.appendChild(sessionCard);
 
 });
-
+*/
 
 
 
