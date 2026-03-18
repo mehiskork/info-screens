@@ -85,6 +85,7 @@ function renderSessions(sessions) {
 
             const driverName = driverNameInput.value.trim();
 
+            // if name of the driver is not inserted, throw error
             if (driverName === "") {
                 driversError.textContent = "Enter the name of the driver";
                 return;
@@ -92,6 +93,7 @@ function renderSessions(sessions) {
 
             driversError.textContent = "";
             console.log("sending driver:add", session.id, driverName);
+
 
             socket.emit("driver:add", { sessionId: session.id, driverName }, (response) => {
                 console.log("driver: add response:", response);
@@ -111,7 +113,8 @@ function renderSessions(sessions) {
             const row = document.createElement("div");
             row.className = "driver-row";
             row.innerHTML = `
-            <span>${driver.name}</span>
+            <span>Car ${driver.carNumber} - ${driver.name}</span>
+            <button class = "edit-driver-btn" type="button">Edit</button>
             <button class = "rmv-driver-btn" type="button">Remove</button>
             `;
 
@@ -120,7 +123,7 @@ function renderSessions(sessions) {
             rmvDriverBtn.addEventListener("click", () => {
                 console.log("sending driver: remove", session.id, driver.name);
 
-
+                // sends Socket.IO driver:remove event to backend
                 socket.emit("driver:remove", {
                     sessionId: session.id,
                     driverName: driver.name
@@ -133,6 +136,51 @@ function renderSessions(sessions) {
                     }
 
                     loadSessions();
+                });
+            });
+
+            const editDriverBtn = row.querySelector(".edit-driver-btn")
+
+            editDriverBtn.addEventListener("click", () => {
+
+                row.innerHTML = `
+                <span>Car ${driver.carNumber}</span>
+                <input class="edit-driver-input" type="text" value="${driver.name}">
+                <button class="save-driver-btn" type="button">Save</button>
+                <button class="cancel-driver-btn" type="button">Cancel</button>
+                `;
+
+                const editInput = row.querySelector(".edit-driver-input");
+                const saveBtn = row.querySelector(".save-driver-btn");
+                const cancelBtn = row.querySelector(".cancel-driver-btn");
+
+                cancelBtn.addEventListener("click", loadSessions);
+
+                saveBtn.addEventListener("click", () => {
+                    const newDriverName = editInput.value.trim();
+
+                    if (newDriverName === "") {
+                        driversError.textContent = "Enter the name of the driver";
+                        return;
+                    }
+
+                    driversError.textContent = "";
+
+                    socket.emit("driver:update", {
+                        sessionId: session.id,
+                        carNumber: driver.carNumber,
+                        newDriverName
+                    }, (response) => {
+                        console.log("driver:update response:", response);
+
+                        if (!response.success) {
+                            driversError.textContent = response.error || "Could not update driver";
+                            return;
+                        }
+
+                        loadSessions();
+
+                    });
                 });
             });
 
