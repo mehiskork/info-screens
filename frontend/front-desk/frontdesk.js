@@ -8,7 +8,7 @@ const sessionsContainer = document.getElementById("sessions-container");
 
 
 
-const MOCK_KEY = "1";
+
 let socket = null;
 
 keyForm.addEventListener("submit", (e) => {
@@ -23,34 +23,36 @@ keyForm.addEventListener("submit", (e) => {
     errorMessage.textContent = "";
 
 
-    // checks if accessKey is correc
-    if (accessKey !== MOCK_KEY) {
-        errorMessage.textContent = "Invalid access key";
+    // checks if accessKey is correct
+    if (accessKey === "") {
+        errorMessage.textContent = "Enter access key";
         return;
     }
-    // Guard against reconnecting twice
-    if (socket) return;
-
-    lockScreen.hidden = true;
-    frontDeskApp.hidden = false;
-
-
 
     // Calls the helper from shared/socket.js.
-    socket = createSocket();
 
-    //Server, give me sessions, and when you answer, run this code
-    socket.on("connect", () => {
+    if (!socket) {
+        socket = createSocket();
 
-        console.log("socket connected");
+        socket.on("connect_error", (err) => {
+            console.log("connect_error:", err.message);
+            errorMessage.textContent = err.message || "Connection failed";
+        });
+
+    }
+
+    socket.emit("auth:receptionist", { accessKey }, (response) => {
+        console.log("auth:receptionist response:", response);
+
+        if (!response.success) {
+            errorMessage.textContent = response.error || "Invalid access key";
+            return;
+        }
+
+        lockScreen.hidden = true;
+        frontDeskApp.hidden = false;
         loadSessions();
-    });
-
-    socket.on("connect_error", (err) => {
-        console.log("connect_error:", err.message);
-        errorMessage.textContent = err.message || "Connection failed";
-    });
-
+    })
 });
 
 function renderSessions(sessions) {
