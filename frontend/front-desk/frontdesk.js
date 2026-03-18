@@ -110,7 +110,33 @@ function renderSessions(sessions) {
         session.drivers.forEach((driver) => {
             const row = document.createElement("div");
             row.className = "driver-row";
-            row.textContent = driver.name;
+            row.innerHTML = `
+            <span>${driver.name}</span>
+            <button class = "rmv-driver-btn" type="button">Remove</button>
+            `;
+
+            const rmvDriverBtn = row.querySelector(".rmv-driver-btn")
+
+            rmvDriverBtn.addEventListener("click", () => {
+                console.log("sending driver: remove", session.id, driver.name);
+
+
+                socket.emit("driver:remove", {
+                    sessionId: session.id,
+                    driverName: driver.name
+                }, (response) => {
+                    console.log("driver:remove response:", response);
+
+                    if (!response.success) {
+                        errorMessage.textContent = response.error || "Could not remove driver"
+                        return;
+                    }
+
+                    loadSessions();
+                });
+            });
+
+
             driversContainer.appendChild(row);
 
         });
