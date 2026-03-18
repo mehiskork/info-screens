@@ -8,7 +8,8 @@ const sessionsContainer = document.getElementById("sessions-container");
 
 
 
-const MOCK_KEY = "1";
+
+let socket = null;
 
 keyForm.addEventListener("submit", (e) => {
 
@@ -21,17 +22,260 @@ keyForm.addEventListener("submit", (e) => {
     // clears old error text
     errorMessage.textContent = "";
 
-    // checks if accessKey is correct, hides lockScreen and shows frontDeskApp
-    if (accessKey === MOCK_KEY) {
-        lockScreen.hidden = true;
-        frontDeskApp.hidden = false;
-    } else {
-        errorMessage.textContent = "Invalid access key";
+
+    // checks if accessKey is correct
+    if (accessKey === "") {
+        errorMessage.textContent = "Enter access key";
+        return;
     }
 
+    // Calls the helper from shared/socket.js.
 
+    if (!socket) {
+        socket = createSocket();
+
+        socket.on("connect_error", (err) => {
+            console.log("connect_error:", err.message);
+            errorMessage.textContent = err.message || "Connection failed";
+        });
+
+    }
+
+    socket.emit("auth:receptionist", { accessKey }, (response) => {
+        console.log("auth:receptionist response:", response);
+
+        if (!response.success) {
+            errorMessage.textContent = response.error || "Invalid access key";
+            return;
+        }
+
+        lockScreen.hidden = true;
+        frontDeskApp.hidden = false;
+        loadSessions();
+    })
 });
 
+function renderSessions(sessions) {
+    sessionsContainer.innerHTML = "";
+
+    // Loops through each session in the array and creates a card for each
+    sessions.forEach((session) => {
+        const card = document.createElement("div");
+        card.className = "session-card";
+
+        card.innerHTML = `
+        <h3>Session ${session.id}</h3>
+        
+
+        <form class="driver-form">
+         <input class="driver-name-input" type="text" placeholder="Enter driver´s name" />
+         <button type="submit">Add Driver</button>
+         </form>
+
+        <p class="drivers-error"></p>
+        <div class="drivers-container"></div>
+
+        <button class= "rmv-session-btn" type=button>Remove Session</button>
+        `;
+
+        const driverForm = card.querySelector(".driver-form")
+        const driverNameInput = card.querySelector(".driver-name-input")
+        const driversError = card.querySelector(".drivers-error")
+
+        driverForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const driverName = driverNameInput.value.trim();
+
+            // if name of the driver is not inserted, throw error
+            if (driverName === "") {
+                driversError.textContent = "Enter the name of the driver";
+                return;
+            }
+
+            driversError.textContent = "";
+            console.log("sending driver:add", session.id, driverName);
+
+
+            socket.emit("driver:add", { sessionId: session.id, driverName }, (response) => {
+                console.log("driver: add response:", response);
+
+                if (!response.success) {
+                    driversError.textContent = response.error || "Could not add driver";
+                    return;
+                }
+
+                loadSessions();
+            });
+        });
+
+        const driversContainer = card.querySelector(".drivers-container")
+
+        session.drivers.forEach((driver) => {
+            const row = document.createElement("div");
+            row.className = "driver-row";
+            row.innerHTML = `
+            <span>Car ${driver.carNumber} - ${driver.name}</span>
+            <button class = "edit-driver-btn" type="button">Edit</button>
+            <button class = "rmv-driver-btn" type="button">Remove</button>
+            `;
+
+            const rmvDriverBtn = row.querySelector(".rmv-driver-btn")
+
+            rmvDriverBtn.addEventListener("click", () => {
+                console.log("sending driver: remove", session.id, driver.name);
+
+                // sends Socket.IO driver:remove event to backend
+                socket.emit("driver:remove", {
+                    sessionId: session.id,
+                    driverName: driver.name
+                }, (response) => {
+                    console.log("driver:remove response:", response);
+
+                    if (!response.success) {
+                        errorMessage.textContent = response.error || "Could not remove driver"
+                        return;
+                    }
+
+                    loadSessions();
+                });
+            });
+
+            const editDriverBtn = row.querySelector(".edit-driver-btn")
+
+            editDriverBtn.addEventListener("click", () => {
+
+                row.innerHTML = `
+                <span>Car ${driver.carNumber}</span>
+                <input class="edit-driver-input" type="text" value="${driver.name}">
+                <button class="save-driver-btn" type="button">Save</button>
+                <button class="cancel-driver-btn" type="button">Cancel</button>
+                `;
+
+                const editInput = row.querySelector(".edit-driver-input");
+                const saveBtn = row.querySelector(".save-driver-btn");
+                const cancelBtn = row.querySelector(".cancel-driver-btn");
+
+                cancelBtn.addEventListener("click", loadSessions);
+
+                saveBtn.addEventListener("click", () => {
+                    const newDriverName = editInput.value.trim();
+
+                    if (newDriverName === "") {
+                        driversError.textContent = "Enter the name of the driver";
+                        return;
+                    }
+
+                    driversError.textContent = "";
+
+                    socket.emit("driver:update", {
+                        sessionId: session.id,
+                        carNumber: driver.carNumber,
+                        newDriverName
+                    }, (response) => {
+                        console.log("driver:update response:", response);
+
+                        if (!response.success) {
+                            driversError.textContent = response.error || "Could not update driver";
+                            return;
+                        }
+
+                        loadSessions();
+
+                    });
+                });
+            });
+
+
+            driversContainer.appendChild(row);
+
+        });
+
+        const rmvSessionBtn = card.querySelector(".rmv-session-btn")
+
+        rmvSessionBtn.addEventListener("click", () => {
+            console.log("sending session:remove", session.id);
+
+            socket.emit("session:remove", { sessionId: session.id }, (response) => {
+                console.log("session:remove response:", response);
+
+                if (!response.success) {
+                    errorMessage.textContent = response.error || "Could not remove session";
+                    return;
+                }
+
+                loadSessions();
+
+
+            })
+        })
+        sessionsContainer.appendChild(card);
+    })
+}
+
+function loadSessions() {
+    if (!socket) {
+        console.log("No socket yet");
+        return;
+    }
+
+    socket.emit("getSessions", (response) => {
+        console.log("getSessions response:", response);
+
+        if (!response.success) {
+            errorMessage.textContent = response.error || "Could not load sessions";
+            return;
+        }
+
+        renderSessions(response.sessions);
+    });
+}
+
+addSessionBtn.addEventListener("click", () => {
+    if (!socket) {
+        errorMessage.textContent = "Connect first";
+        return;
+    }
+
+    console.log("sending session:add");
+
+    socket.emit("session:add", (response) => {
+        console.log("session:add response:", response);
+
+
+        if (!response.success) {
+            errorMessage.textContent = response.error || "Could not add session";
+            return;
+        }
+
+        loadSessions();
+
+    });
+
+})
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
 let sessionCount = 0;
 
 
@@ -230,7 +474,7 @@ addSessionBtn.addEventListener("click", () => {
     sessionsContainer.appendChild(sessionCard);
 
 });
-
+*/
 
 
 

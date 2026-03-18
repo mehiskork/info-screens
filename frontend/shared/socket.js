@@ -1,3 +1,3 @@
 window.createSocket = function () {
-    return io();
+    return io({ autoConnect: true });
 };
