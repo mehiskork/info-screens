@@ -33,7 +33,7 @@ keyForm.addEventListener("submit", (e) => {
 
     lockScreen.hidden = true;
     frontDeskApp.hidden = false;
-    addSessionBtn.disabled = true;
+
 
 
     // Calls the helper from shared/socket.js.
@@ -60,7 +60,79 @@ function renderSessions(sessions) {
     sessions.forEach((session) => {
         const card = document.createElement("div");
         card.className = "session-card";
-        card.innerHTML = `<h3>Session ${session.id}</h3>`;
+
+        card.innerHTML = `
+        <h3>Session ${session.id}</h3>
+        
+
+        <form class="driver-form">
+         <input class="driver-name-input" type="text" placeholder="Enter driver´s name" />
+         <button type="submit">Add Driver</button>
+         </form>
+
+        <p class="drivers-error"></p>
+        <div class="drivers-container"></div>
+
+        <button class= "rmv-session-btn" type=button>Remove Session</button>
+        `;
+
+        const driverForm = card.querySelector(".driver-form")
+        const driverNameInput = card.querySelector(".driver-name-input")
+        const driversError = card.querySelector(".drivers-error")
+
+        driverForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const driverName = driverNameInput.value.trim();
+
+            if (driverName === "") {
+                driversError.textContent = "Enter the name of the driver";
+                return;
+            }
+
+            driversError.textContent = "";
+            console.log("sending driver:add", session.id, driverName);
+
+            socket.emit("driver:add", { sessionId: session.id, driverName }, (response) => {
+                console.log("driver: add response:", response);
+
+                if (!response.success) {
+                    driversError.textContent = response.error || "Could not add driver";
+                    return;
+                }
+
+                loadSessions();
+            });
+        });
+
+        const driversContainer = card.querySelector(".drivers-container")
+
+        session.drivers.forEach((driver) => {
+            const row = document.createElement("div");
+            row.className = "driver-row";
+            row.textContent = driver.name;
+            driversContainer.appendChild(row);
+
+        });
+
+        const rmvSessionBtn = card.querySelector(".rmv-session-btn")
+
+        rmvSessionBtn.addEventListener("click", () => {
+            console.log("sending session:remove", session.id);
+
+            socket.emit("session:remove", { sessionId: session.id }, (response) => {
+                console.log("session:remove response:", response);
+
+                if (!response.success) {
+                    errorMessage.textContent = response.error || "Could not remove session";
+                    return;
+                }
+
+                loadSessions();
+
+
+            })
+        })
         sessionsContainer.appendChild(card);
     })
 }
@@ -93,14 +165,16 @@ addSessionBtn.addEventListener("click", () => {
 
     socket.emit("session:add", (response) => {
         console.log("session:add response:", response);
-    })
 
-    if (!response.success) {
-        errorMessage.textContent = response.error || "Could not add session";
-        return;
-    }
 
-    loadSessions();
+        if (!response.success) {
+            errorMessage.textContent = response.error || "Could not add session";
+            return;
+        }
+
+        loadSessions();
+
+    });
 
 })
 
