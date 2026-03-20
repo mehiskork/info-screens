@@ -15,8 +15,11 @@ let socket = null;
 function formatDriverName(name) {
     return name
         .trim()
+        //Splits the string into an array of words. /s = any whitespace character
         .split(/\s+/)
         .map((word) => {
+
+            //first character uppercase, rest lowercase
             return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
         })
         .join(" ");
