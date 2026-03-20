@@ -92,3 +92,20 @@ body {
 .error1 {
     color: crimson
 }
+
+.car-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.car-chip.selected {
+    outline: 2px solid currentColor;
+    font-weight: 700;
+}
+
+.car-chip.taken {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

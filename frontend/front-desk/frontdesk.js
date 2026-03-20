@@ -79,12 +79,35 @@ function renderSessions(sessions) {
         const card = document.createElement("div");
         card.className = "session-card";
 
+        // compute taken cars
+        const takenCars = session.drivers.map((driver) => driver.carNumber);
         card.innerHTML = `
         <h3>Session ${session.id}</h3>
         
 
         <form class="driver-form">
          <input class="driver-name-input" type="text" placeholder="Enter driver´s name" />
+         <div class="car-picker">
+         
+         <!-- Creates 8 buttons -->
+
+
+         ${Array.from({ length: 8 }, (_, i) => {
+            const carNumber = i + 1;
+            const isTaken = takenCars.includes(carNumber);
+
+            return `
+             <button 
+             class="car-chip ${isTaken ? "taken" : ""}"
+             type="button" 
+             data-car="${carNumber}" ${isTaken ? "disabled" : ""}>
+             Car ${carNumber}</button>
+         `;
+        }).join("")}
+         </div>
+
+        <!-- Hidden input for storing car value after it is been picked -->
+         <input class="car-number-input" type="hidden" value="" />
          <button type="submit">Add Driver</button>
          </form>
 
@@ -94,14 +117,33 @@ function renderSessions(sessions) {
         <button class= "rmv-session-btn" type=button>Remove Session</button>
         `;
 
+
+
+
+        const carPicker = card.querySelector(".car-picker");
+        const carNumberInput = card.querySelector(".car-number-input");
+
+        carPicker.addEventListener("click", (e) => {
+            const chip = e.target.closest(".car-chip");
+            if (!chip) return;
+            if (chip.disabled) return;
+
+            carPicker.querySelectorAll(".car-chip").forEach((btn) => btn.classList.remove("selected"));
+            chip.classList.add("selected");
+            carNumberInput.value = chip.dataset.car;
+        })
+
+
         const driverForm = card.querySelector(".driver-form")
         const driverNameInput = card.querySelector(".driver-name-input")
         const driversError = card.querySelector(".drivers-error")
+
 
         driverForm.addEventListener("submit", (e) => {
             e.preventDefault();
 
             const driverName = formatDriverName(driverNameInput.value);
+            const carNumber = Number(carNumberInput.value);
 
             // if name of the driver is not inserted, throw error
             if (driverName === "") {
@@ -109,11 +151,16 @@ function renderSessions(sessions) {
                 return;
             }
 
+            if (!carNumber) {
+                driversError.textContent = "Select a car"
+                return;
+            }
+
             driversError.textContent = "";
-            console.log("sending driver:add", session.id, driverName);
+            console.log("sending driver:add", session.id, driverName, carNumber);
 
 
-            socket.emit("driver:add", { sessionId: session.id, driverName }, (response) => {
+            socket.emit("driver:add", { sessionId: session.id, driverName, carNumber }, (response) => {
                 console.log("driver: add response:", response);
 
                 if (!response.success) {
