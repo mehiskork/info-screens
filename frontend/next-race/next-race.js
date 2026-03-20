@@ -43,6 +43,18 @@ function showEmptyState() {
     raceCard.hidden = true;
 }
 
+function renderDriverRow(driver) {
+    const row = document.createElement("div");
+    row.className = "driver-row";
+
+    row.innerHTML = `
+        <div class="car-badge">Car ${driver.carNumber}</div>
+        <div class="driver-name">${driver.name}</div>
+    `;
+
+    return row
+}
+
 function renderNextRace(session) {
     emptyState.hidden = true;
     raceCard.hidden = false;
@@ -53,9 +65,7 @@ function renderNextRace(session) {
 
     // loops through each driver and creates a row
     session.drivers.forEach((driver) => {
-        const row = document.createElement("div");
-        row.className = "driver-row";
-        row.textContent = `Car ${driver.carNumber} - ${driver.name}`;
+        const row = renderDriverRow(driver);
         driversList.appendChild(row);
 
     });
