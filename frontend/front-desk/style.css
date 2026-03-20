@@ -300,11 +300,11 @@ body {
 
 .driver-row {
     display: grid;
-    grid-template-columns: 48px 1fr auto auto;
+    grid-template-columns: 40px 1fr auto auto;
     align-items: center;
-    gap: 12px;
-    min-height: 74px;
-    padding: 14px 16px;
+    gap: 10px;
+    min-height: 50px;
+    padding: 8px 12px;
     border: 1px solid var(--border);
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.01);
@@ -329,6 +329,7 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    padding-left: 10px;
 }
 
 .edit-driver-btn,
