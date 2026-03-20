@@ -11,6 +11,19 @@ const sessionsContainer = document.getElementById("sessions-container");
 
 let socket = null;
 
+// all names uppercase when adding a driver. Can change in edit if needed
+function formatDriverName(name) {
+    return name
+        .trim()
+        .split(/\s+/)
+        .map((word) => {
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        })
+        .join(" ");
+}
+
+
+
 keyForm.addEventListener("submit", (e) => {
 
     // Do not do the browser’s normal form submit behavior. Let my JavaScript handle it.
@@ -85,7 +98,7 @@ function renderSessions(sessions) {
         driverForm.addEventListener("submit", (e) => {
             e.preventDefault();
 
-            const driverName = driverNameInput.value.trim();
+            const driverName = formatDriverName(driverNameInput.value);
 
             // if name of the driver is not inserted, throw error
             if (driverName === "") {
