@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next Race</title>
+    <link rel="stylesheet" href="/frontend/next-race/next-race.css" />
+
+
+</head>
+
+<body class="dark">
+    <main class="screen">
+        <div class="topbar">
+            <h1>Next Race</h1>
+            <button id="fullscreen-btn" class="button1" type="button">Fullscreen</button>
+
+        </div>
+
+        <div class="meta">
+            <div class="meta-box" id="flag-status">Flag: Waiting</div>
+            <div class="meta-box" id="timer-display">Timer: --:--</div>
+
+        </div>
+
+        <section class="empty-state" id="empty-state">
+            No upcoming race.
+        </section>
+
+        <section class="race-card" id="race-card" hidden>
+            <h2 id="session-title">Session --</h2>
+            <div id="drivers-list"></div>
+
+        </section>
+
+    </main>
+
+    <script src="/frontend/next-race/next-race.js"></script>
+</body>
+
+</html>
