@@ -85,31 +85,30 @@ function renderSessions(sessions) {
         <h3>Session ${session.id}</h3>
         
 
-        <form class="driver-form">
-         <input class="driver-name-input" type="text" placeholder="Enter driver´s name" />
-         <div class="car-picker">
-         
-         <!-- Creates 8 buttons -->
+      <form class="driver-form">
+  <p class="form-label car-label">Select Car</p>
 
-
-         ${Array.from({ length: 8 }, (_, i) => {
+  <div class="car-picker">
+    ${Array.from({ length: 8 }, (_, i) => {
             const carNumber = i + 1;
             const isTaken = takenCars.includes(carNumber);
 
             return `
-             <button 
-             class="car-chip ${isTaken ? "taken" : ""}"
-             type="button" 
-             data-car="${carNumber}" ${isTaken ? "disabled" : ""}>
-             Car ${carNumber}</button>
-         `;
+        <button
+          class="car-chip ${isTaken ? "taken" : ""}"
+          type="button"
+          data-car="${carNumber}"
+          ${isTaken ? "disabled" : ""}
+        >
+          Car ${carNumber}
+        </button>
+      `;
         }).join("")}
          </div>
-
-        <!-- Hidden input for storing car value after it is been picked -->
-         <input class="car-number-input" type="hidden" value="" />
-         <button type="submit">Add Driver</button>
-         </form>
+            <input class="driver-name-input" maxlength="40" type="text" placeholder="Enter driver´s name" />
+            <input class="car-number-input" type="hidden" value="" />
+            <button type="submit">Add Driver</button>
+            </form>
 
         <p class="drivers-error"></p>
         <div class="drivers-container"></div>
@@ -145,6 +144,14 @@ function renderSessions(sessions) {
             const driverName = formatDriverName(driverNameInput.value);
             const carNumber = Number(carNumberInput.value);
 
+            const MAX_DRIVER_NAME_LENGTH = 40;
+
+            if (driverName.length > MAX_DRIVER_NAME_LENGTH) {
+                driversError.textContent = `Driver name must be ${MAX_DRIVER_NAME_LENGTH} characters or less`;
+                return;
+            }
+
+
             // if name of the driver is not inserted, throw error
             if (driverName === "") {
                 driversError.textContent = "Enter the name of the driver";
@@ -178,7 +185,8 @@ function renderSessions(sessions) {
             const row = document.createElement("div");
             row.className = "driver-row";
             row.innerHTML = `
-            <span>Car ${driver.carNumber} - ${driver.name}</span>
+            <span class="driver-badge">${driver.carNumber}</span>
+            <span class="driver-name">${driver.name}</span>
             <button class = "edit-driver-btn" type="button">Edit</button>
             <button class = "rmv-driver-btn" type="button">Remove</button>
             `;
@@ -209,8 +217,8 @@ function renderSessions(sessions) {
             editDriverBtn.addEventListener("click", () => {
 
                 row.innerHTML = `
-                <span>Car ${driver.carNumber}</span>
-                <input class="edit-driver-input" type="text" value="${driver.name}">
+                <span class="driver-badge">Car ${driver.carNumber}</span>
+                <input class="edit-driver-input" type="text" maxlength="40" value="${driver.name}">
                 <button class="save-driver-btn" type="button">Save</button>
                 <button class="cancel-driver-btn" type="button">Cancel</button>
                 `;
@@ -223,6 +231,13 @@ function renderSessions(sessions) {
 
                 saveBtn.addEventListener("click", () => {
                     const newDriverName = editInput.value.trim();
+
+                    if (newDriverName.length > MAX_DRIVER_NAME_LENGTH) {
+                        driversError.textContent = `Driver name must be ${MAX_DRIVER_NAME_LENGTH} characters or less`;
+                        return;
+                    }
+
+
 
                     if (newDriverName === "") {
                         driversError.textContent = "Enter the name of the driver";

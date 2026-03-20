@@ -63,7 +63,7 @@ body {
 }
 
 .error1 {
-    color: crimson
+    color: red
 }
 
 .screen {
@@ -115,11 +115,6 @@ body {
 .empty-state {
     text-align: center;
     font-size: 1.5rem;
-    color: var(--muted-foreground);
-    padding: 48px 24px;
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
 }
 
 .driver-row {
