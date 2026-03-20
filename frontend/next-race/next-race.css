@@ -115,4 +115,33 @@ body {
 .empty-state {
     text-align: center;
     font-size: 1.5rem;
+    color: var(--muted-foreground);
+    padding: 48px 24px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.driver-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 1.4rem;
+}
+
+.car-badge {
+    display: grid;
+    place-items: center;
+    min-height: 44px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.driver-name {
+    font-size: 1.2rem;
 }
