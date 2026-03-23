@@ -36,6 +36,8 @@ function initializeSocketHandlers(io) {
     socket.on('session:add', (callback) => {
       const newSession = addSession()
       callback({ success: true, session: newSession })
+      // Broadcast that the next race queue has changed
+      io.emit('nextRace:changed')
     })
     
     // Add a driver to a session
@@ -43,6 +45,10 @@ function initializeSocketHandlers(io) {
       const { sessionId, driverName } = data
       const result = addDriver(sessionId, driverName)
       callback(result)
+      // Broadcast if driver was added successfully
+      if (result.success) {
+        io.emit('nextRace:changed')
+      }
     })
     
     // Remove a session
@@ -50,6 +56,10 @@ function initializeSocketHandlers(io) {
       const { sessionId } = data
       const result = removeSession(sessionId)
       callback(result)
+      // Broadcast if session was removed successfully
+      if (result.success) {
+        io.emit('nextRace:changed')
+      }
     })
     
     // Remove a driver from a session
@@ -57,6 +67,10 @@ function initializeSocketHandlers(io) {
       const { sessionId, driverName } = data
       const result = removeDriver(sessionId, driverName)
       callback(result)
+      // Broadcast if driver was removed successfully
+      if (result.success) {
+        io.emit('nextRace:changed')
+      }
     })
     
     // Update a driver in a session
@@ -64,6 +78,10 @@ function initializeSocketHandlers(io) {
       const { sessionId, carNumber, newDriverName } = data
       const result = updateDriver(sessionId, carNumber, newDriverName)
       callback(result)
+      // Broadcast if driver was updated successfully
+      if (result.success) {
+        io.emit('nextRace:changed')
+      }
     })
     
     // Authenticate receptionist
@@ -84,6 +102,10 @@ function initializeSocketHandlers(io) {
       const { sessionId } = data
       const result = startRace(sessionId)
       callback(result)
+      // Broadcast if race started successfully (next race in queue changes)
+      if (result.success) {
+        io.emit('nextRace:changed')
+      }
     })
     
     // Change race mode

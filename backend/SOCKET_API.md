@@ -22,6 +22,48 @@ socket.on('disconnect', () => {
 
 ---
 
+## Broadcast Events
+
+The server emits broadcast events to all connected clients when certain state changes occur. These events have no payload and serve as notifications to re-fetch data.
+
+### Next Race Changed
+
+**Event:** `nextRace:changed`  
+**Direction:** Server → All Clients (broadcast)  
+**Payload:** None
+
+Emitted when the next race queue changes due to:
+- Session added or removed
+- Driver added, removed, or updated in any session
+- Race started (active race no longer shows as "next")
+
+```javascript
+socket.on('nextRace:changed', () => {
+  // Re-fetch the next race data
+  socket.emit('getNextRace', (response) => {
+    if (response.success) {
+      console.log('Next race updated:', response.data)
+      // Update UI with new next race data
+    }
+  })
+})
+```
+
+**Usage Pattern for /next-race frontend:**
+```javascript
+// Listen for changes
+socket.on('nextRace:changed', loadNextRace)
+
+// Initial load
+function loadNextRace() {
+  socket.emit('getNextRace', (response) => {
+    // Update display
+  })
+}
+```
+
+---
+
 ## Implemented Events
 
 ### Session Management
@@ -109,6 +151,12 @@ socket.emit('getNextRace', (response) => {
   }
 })
 ```
+
+**Notes:**
+- Returns the next queued session (not the currently active race)
+- If no race is active, returns the first session in the queue
+- If a race is active, returns the session after it in the queue
+- Returns error if no sessions are queued
 
 ---
 

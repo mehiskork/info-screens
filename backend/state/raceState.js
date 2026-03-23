@@ -99,10 +99,32 @@ function addDriver(sessionId, driverName) {
  * Returns null if no sessions exist
  */
 function getNextRaceSession() {
-  if (state.sessions.length === 0) {
+  // If no race is active, return the first queued session
+  if (state.currentRace.sessionId === null) {
+    if (state.sessions.length === 0) {
+      return { success: false, error: 'No queued sessions' }
+    }
+    return { success: true, data: JSON.parse(JSON.stringify(state.sessions[0])) }
+  }
+  
+  // If a race is active, find the next queued session after it
+  const activeIndex = state.sessions.findIndex(s => s.id === state.currentRace.sessionId)
+  
+  // If active session not found in queue (shouldn't happen), return first session
+  if (activeIndex === -1) {
+    if (state.sessions.length === 0) {
+      return { success: false, error: 'No queued sessions' }
+    }
+    return { success: true, data: JSON.parse(JSON.stringify(state.sessions[0])) }
+  }
+  
+  // Return the next session after the active one
+  const nextIndex = activeIndex + 1
+  if (nextIndex >= state.sessions.length) {
     return { success: false, error: 'No queued sessions' }
   }
-  return { success: true, data: JSON.parse(JSON.stringify(state.sessions[0])) }
+  
+  return { success: true, data: JSON.parse(JSON.stringify(state.sessions[nextIndex])) }
 }
 
 /**
