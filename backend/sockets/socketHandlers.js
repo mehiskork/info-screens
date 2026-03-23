@@ -40,8 +40,8 @@ function initializeSocketHandlers(io) {
     
     // Add a driver to a session
     socket.on('driver:add', (data, callback) => {
-      const { sessionId, driverName } = data
-      const result = addDriver(sessionId, driverName)
+      const { sessionId, driverName, carNumber } = data
+      const result = addDriver(sessionId, driverName, carNumber)
       callback(result)
     })
     
