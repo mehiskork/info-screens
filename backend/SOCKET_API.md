@@ -559,14 +559,23 @@ socket.emit('auth:observer', { accessKey: 'your-key-here' }, (response) => {
 
 ## For Frontend Team
 
-**Current Status:** Core racing features and receptionist authentication are fully functional. You can:
+**Current Status:** Core racing features and all authentication roles are fully functional. You can:
 - Create and manage sessions
-- Add/remove/update drivers (auto car assignment 1-8)
-- Authenticate receptionists with access keys
+- Add/remove/update drivers (manual car assignment 1-8)
+- Authenticate receptionists, safety officials, and observers with access keys
 - Start races and control race modes (safe/racing/paused/finished)
 - Query next race in queue
 - Record lap crossings and calculate lap times
 - Get real-time leaderboard sorted by best lap time
 - Get race status with time remaining
+- Next race updates broadcast in real-time (nextRace:changed event)
 
-**Pending:** Safety & observer authentication, real-time broadcasting, formal session end event
+**Available Interfaces:**
+- `/front-desk` - Receptionist authentication, session and driver management
+- `/next-race` - Public display of next race with real-time updates
+- `/race-control` - Safety official authentication, race start and mode control
+- `/race-countdown` - Race timer display (needs connection to backend)
+- `/race-flags` - Race status flag display (needs connection to backend)
+- `/lap-line-tracker` - Observer authentication, lap crossing recording (NEW in RT41)
+
+**Pending:** Real-time broadcasting for race status/lap events, formal session end event
