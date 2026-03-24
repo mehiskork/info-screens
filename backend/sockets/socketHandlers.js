@@ -22,6 +22,39 @@ const {
 } = require('../state/raceState')
 
 /**
+ * Broadcast current race state to all connected clients
+ * Emits state:update event with race mode and timer information
+ */
+function broadcastState(io) {
+  const result = getCurrentRaceStatus()
+
+  if (!result.success) {
+    io.emit("state:update", {
+      raceMode: "danger",
+      timer: { running: false }
+    })
+    return
+  }
+  
+  const race = result.race
+  console.log("BROADCAST:", race.mode)
+
+  io.emit("state:update", {
+    raceMode: race.mode,
+    timer: {
+      running: race.mode !== "finished",
+      endsAt: race.startTime + result.race.totalDuration * 1000
+    }
+  })
+
+  const now = Date.now()
+
+  if (race.startTime && now >= race.startTime + result.race.totalDuration * 1000) {
+    changeRaceMode("finished")
+  }
+}
+
+/**
  * Initialize Socket.IO event handlers
  */
 function initializeSocketHandlers(io) {
@@ -120,14 +153,25 @@ function initializeSocketHandlers(io) {
       callback(result)
       // Broadcast if race started successfully (next race in queue changes)
       if (result.success) {
+        io.emit('race:started', { sessionId })
         io.emit('nextRace:changed')
+        broadcastState(io)
       }
     })
     
     // Change race mode
-    socket.on('race:changeMode', (data, callback) => {
+    socket.on('race:changeMode', (data = {}, callback = () => {}) => {
+      if (!data.mode) {
+        return callback({ success: false, error: 'Mode required' })
+      }
+      
       const { mode } = data
       const result = changeRaceMode(mode)
+      
+      if (result.success) {
+        broadcastState(io)
+      }
+      
       callback(result)
     })
     
