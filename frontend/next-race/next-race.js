@@ -4,13 +4,33 @@ const sessionTitle = document.getElementById("session-title");
 const driversList = document.getElementById("drivers-list");
 const emptyState = document.getElementById("empty-state");
 
-fullScreenBtn.addEventListener("click", async () => {
-    if (!document.fullscreenElement) {
 
-        //document.documentElement means the root HTML element, basically the whole page
-        await document.documentElement.requestFullscreen();
+// checks if fullscreen or not and names the button
+function updateFullscreenButton() {
+
+
+    if (document.fullscreenElement) {
+        fullScreenBtn.textContent = "Exit Fullscreen";
+    } else {
+        fullScreenBtn.textContent = "Fullscreen";
+    }
+}
+
+fullScreenBtn.addEventListener("click", async () => {
+    try {
+        if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+        } else {
+            await document.exitFullscreen();
+        }
+    } catch (err) {
+        console.error("Fullscreen error:", err);
     }
 });
+
+//Whenever fullscreen state changes, update the button text. esc is used
+document.addEventListener("fullscreenchange", updateFullscreenButton);
+updateFullscreenButton();
 
 const socket = createSocket();
 

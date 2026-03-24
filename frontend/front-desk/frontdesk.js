@@ -24,6 +24,20 @@ function formatDriverName(name) {
         .join(" ");
 }
 
+let queueListenerAttached = false;
+
+function attachQueueListenersOnce() {
+    if (!socket || queueListenerAttached) return;
+
+    // when the backend emits nextRace:changed, run this function
+    socket.on("nextRace:changed", () => {
+        console.log("nextRace:changed received");
+        loadSessions();
+    });
+
+    queueListenerAttached = true;
+}
+
 
 
 keyForm.addEventListener("submit", (e) => {
@@ -64,8 +78,12 @@ keyForm.addEventListener("submit", (e) => {
             return;
         }
 
+        errorMessage.textContent = "";
         lockScreen.hidden = true;
         frontDeskApp.hidden = false;
+
+
+        attachQueueListenersOnce();
         loadSessions();
     })
 });
@@ -143,7 +161,6 @@ function renderSessions(sessions) {
             const driverName = formatDriverName(driverNameInput.value);
             const carNumber = Number(carNumberInput.value);
 
-            const MAX_DRIVER_NAME_LENGTH = 40;
 
             if (driverName.length > MAX_DRIVER_NAME_LENGTH) {
                 driversError.textContent = `Driver name must be ${MAX_DRIVER_NAME_LENGTH} characters or less`;
