@@ -45,6 +45,10 @@ body {
     z-index: 1000;
 }
 
+#lock-screen[hidden] {
+    display: none;
+}
+
 .lock-panel {
     max-width: 400px;
     width: 100%;
