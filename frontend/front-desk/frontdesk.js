@@ -7,8 +7,6 @@ const addSessionBtn = document.getElementById("add-session-btn");
 const sessionsContainer = document.getElementById("sessions-container");
 
 
-
-
 let socket = null;
 
 // all names uppercase when adding a driver. Can change in edit if needed
@@ -79,14 +77,36 @@ function renderSessions(sessions) {
         const card = document.createElement("div");
         card.className = "session-card";
 
+        // compute taken cars
+        const takenCars = session.drivers.map((driver) => driver.carNumber);
         card.innerHTML = `
         <h3>Session ${session.id}</h3>
         
 
-        <form class="driver-form">
-         <input class="driver-name-input" type="text" placeholder="Enter driver´s name" />
-         <button type="submit">Add Driver</button>
-         </form>
+      <form class="driver-form">
+  <p class="form-label car-label">Select Car</p>
+
+  <div class="car-picker">
+    ${Array.from({ length: 8 }, (_, i) => {
+            const carNumber = i + 1;
+            const isTaken = takenCars.includes(carNumber);
+
+            return `
+        <button
+          class="car-chip ${isTaken ? "taken" : ""}"
+          type="button"
+          data-car="${carNumber}"
+          ${isTaken ? "disabled" : ""}
+        >
+          Car ${carNumber}
+        </button>
+      `;
+        }).join("")}
+         </div>
+            <input class="driver-name-input" maxlength="40" type="text" placeholder="Enter driver´s name" />
+            <input class="car-number-input" type="hidden" value="" />
+            <button type="submit">Add Driver</button>
+            </form>
 
         <p class="drivers-error"></p>
         <div class="drivers-container"></div>
@@ -94,14 +114,41 @@ function renderSessions(sessions) {
         <button class= "rmv-session-btn" type=button>Remove Session</button>
         `;
 
+
+
+
+        const carPicker = card.querySelector(".car-picker");
+        const carNumberInput = card.querySelector(".car-number-input");
+
+        carPicker.addEventListener("click", (e) => {
+            const chip = e.target.closest(".car-chip");
+            if (!chip) return;
+            if (chip.disabled) return;
+
+            carPicker.querySelectorAll(".car-chip").forEach((btn) => btn.classList.remove("selected"));
+            chip.classList.add("selected");
+            carNumberInput.value = chip.dataset.car;
+        })
+
+
         const driverForm = card.querySelector(".driver-form")
         const driverNameInput = card.querySelector(".driver-name-input")
         const driversError = card.querySelector(".drivers-error")
+
 
         driverForm.addEventListener("submit", (e) => {
             e.preventDefault();
 
             const driverName = formatDriverName(driverNameInput.value);
+            const carNumber = Number(carNumberInput.value);
+
+            const MAX_DRIVER_NAME_LENGTH = 40;
+
+            if (driverName.length > MAX_DRIVER_NAME_LENGTH) {
+                driversError.textContent = `Driver name must be ${MAX_DRIVER_NAME_LENGTH} characters or less`;
+                return;
+            }
+
 
             // if name of the driver is not inserted, throw error
             if (driverName === "") {
@@ -109,11 +156,16 @@ function renderSessions(sessions) {
                 return;
             }
 
+            if (!carNumber) {
+                driversError.textContent = "Select a car"
+                return;
+            }
+
             driversError.textContent = "";
-            console.log("sending driver:add", session.id, driverName);
+            console.log("sending driver:add", session.id, driverName, carNumber);
 
 
-            socket.emit("driver:add", { sessionId: session.id, driverName }, (response) => {
+            socket.emit("driver:add", { sessionId: session.id, driverName, carNumber }, (response) => {
                 console.log("driver: add response:", response);
 
                 if (!response.success) {
@@ -131,7 +183,8 @@ function renderSessions(sessions) {
             const row = document.createElement("div");
             row.className = "driver-row";
             row.innerHTML = `
-            <span>Car ${driver.carNumber} - ${driver.name}</span>
+            <span class="driver-badge">${driver.carNumber}</span>
+            <span class="driver-name">${driver.name}</span>
             <button class = "edit-driver-btn" type="button">Edit</button>
             <button class = "rmv-driver-btn" type="button">Remove</button>
             `;
@@ -162,8 +215,8 @@ function renderSessions(sessions) {
             editDriverBtn.addEventListener("click", () => {
 
                 row.innerHTML = `
-                <span>Car ${driver.carNumber}</span>
-                <input class="edit-driver-input" type="text" value="${driver.name}">
+                <span class="driver-badge">Car ${driver.carNumber}</span>
+                <input class="edit-driver-input" type="text" maxlength="40" value="${driver.name}">
                 <button class="save-driver-btn" type="button">Save</button>
                 <button class="cancel-driver-btn" type="button">Cancel</button>
                 `;
@@ -176,6 +229,13 @@ function renderSessions(sessions) {
 
                 saveBtn.addEventListener("click", () => {
                     const newDriverName = editInput.value.trim();
+
+                    if (newDriverName.length > MAX_DRIVER_NAME_LENGTH) {
+                        driversError.textContent = `Driver name must be ${MAX_DRIVER_NAME_LENGTH} characters or less`;
+                        return;
+                    }
+
+
 
                     if (newDriverName === "") {
                         driversError.textContent = "Enter the name of the driver";

@@ -3,42 +3,34 @@
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.145 0 0);
     --card-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.985 0 0);
-    --primary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.269 0 0);
     --muted-foreground: oklch(0.708 0 0);
     --border: oklch(0.269 0 0);
     --input-background: oklch(0.269 0 0);
+    --radius: 16px;
+}
+
+* {
+    box-sizing: border-box;
 }
 
 body {
     margin: 0;
     min-height: 100vh;
-    display: grid;
-    place-items: center;
     background: var(--background);
     color: var(--foreground);
     font-family: Arial, sans-serif;
 }
 
+/* Lock screen */
 #lock-screen {
-    width: 100%;
-    max-width: 420px;
+    width: min(420px, calc(100vw - 32px));
+    margin: 48px auto;
     padding: 32px;
     border: 1px solid var(--border);
-    border-radius: var(--radius);
+    border-radius: 22px;
     background: var(--card);
     color: var(--card-foreground);
-}
-
-#access-key {
-    width: 100%;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--input-background);
-    color: var(--foreground);
-    box-sizing: border-box;
 }
 
 #key-form {
@@ -47,48 +39,357 @@ body {
     gap: 12px;
 }
 
-
-.button1 {
-    background-color: #111827;
-    border: 1px solid transparent;
-    border-radius: .75rem;
-    box-sizing: border-box;
-    color: #FFFFFF;
-    cursor: pointer;
-    flex: 0 0 auto;
-    font-family: "Inter var", ui-sans-serif, system-ui, -apple-system, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-    font-size: 1.125rem;
-    font-weight: 600;
-    line-height: 1.5rem;
-    padding: .75rem 1.2rem;
-    text-align: center;
-    text-decoration: none #6B7280 solid;
-    text-decoration-thickness: auto;
-    transition-duration: .5s;
-    transition-property: background-color, border-color, color, fill, stroke;
-    transition-timing-function: cubic-bezier(.4, 0, 0.2, 1);
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: manipulation;
-    width: auto;
+#access-key {
+    width: 100%;
+    min-height: 48px;
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--input-background);
+    color: var(--foreground);
+    font-size: 1rem;
 }
 
-.button1:hover {
-    background-color: #374151;
-}
-
-.button1:focus {
-    box-shadow: none;
-    outline: 2px solid transparent;
-    outline-offset: 2px;
-}
-
-@media (min-width: 768px) {
-    .button1 {
-        padding: .75rem 1.5rem;
-    }
+#access-key::placeholder {
+    color: var(--muted-foreground);
 }
 
 .error1 {
-    color: crimson
+    color: crimson;
+    min-height: 20px;
+    margin: 0;
+}
+
+/* Page */
+#front-desk-app {
+    width: min(800px, calc(100vw - 48px));
+    margin: 28px auto 48px;
+}
+
+#front-desk-app h1,
+#front-desk-app h2 {
+    margin: 0 0 8px;
+    font-size: 2rem;
+}
+
+#front-desk-app p {
+    margin: 0 0 18px;
+}
+
+#add-session-btn {
+    margin-bottom: 20px;
+}
+
+/* Shared button family */
+.button1,
+.driver-form>button[type="submit"],
+.edit-driver-btn,
+.rmv-driver-btn,
+.save-driver-btn,
+.cancel-driver-btn {
+    background-color: #111827;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: #ffffff;
+    cursor: pointer;
+    font-family: "Inter var", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+    font-weight: 600;
+    transition: background-color .2s ease, transform .1s ease;
+}
+
+.button1 {
+    font-size: 1.05rem;
+    line-height: 1.2;
+    padding: .8rem 1.25rem;
+}
+
+.button1:hover,
+.edit-driver-btn:hover,
+.rmv-driver-btn:hover,
+.save-driver-btn:hover,
+.cancel-driver-btn:hover {
+    background-color: #374151;
+}
+
+.button1:active,
+.edit-driver-btn:active,
+.rmv-driver-btn:active,
+.save-driver-btn:active,
+.cancel-driver-btn:active {
+    transform: translateY(1px);
+}
+
+/* Sessions list */
+#sessions-container {
+    display: grid;
+    gap: 20px;
+}
+
+/* Session card */
+.session-card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 18px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    background: var(--card);
+}
+
+.session-card>h3 {
+    grid-column: 1;
+    grid-row: 1;
+    margin: 0;
+    font-size: 1.8rem;
+    align-self: center;
+}
+
+.rmv-session-btn {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    align-self: center;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: #ff3b4d;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.rmv-session-btn:hover {
+    color: #ff6472;
+}
+
+/* Everything under header spans full width */
+.driver-form,
+.drivers-error,
+.drivers-container {
+    grid-column: 1 / -1;
+}
+
+/* Add driver form */
+.driver-form {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+        "carlabel carlabel"
+        "cars cars"
+        "name submit";
+    gap: 14px;
+    align-items: center;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+}
+
+/* Form labels */
+.form-label {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--foreground);
+}
+
+.car-label {
+    grid-area: carlabel;
+}
+
+/* Car picker */
+.car-picker {
+    grid-area: cars;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+/* Hidden input */
+.car-number-input {
+    display: none;
+}
+
+/* Inputs */
+.driver-name-input,
+.edit-driver-input {
+    width: 100%;
+    min-height: 52px;
+    padding: 0 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--input-background);
+    color: var(--foreground);
+    font-size: 1rem;
+}
+
+.driver-name-input {
+    grid-area: name;
+    min-width: 0;
+}
+
+.driver-name-input::placeholder,
+.edit-driver-input::placeholder {
+    color: var(--muted-foreground);
+}
+
+/* Add Driver button */
+.driver-form>button[type="submit"] {
+    grid-area: submit;
+    width: auto;
+    min-width: 130px;
+    min-height: 52px;
+    padding: 0 22px;
+    white-space: nowrap;
+    justify-self: end;
+    align-self: center;
+}
+
+.driver-form>button[type="submit"]:hover {
+    background-color: #374151;
+}
+
+.driver-form>button[type="submit"]:active {
+    transform: translateY(1px);
+}
+
+/* Car chips */
+.car-chip {
+    min-height: 50px;
+    padding: 12px;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background: #2b2b2e;
+    color: var(--foreground);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 700;
+    transition: background-color .2s ease, opacity .2s ease, border-color .2s ease;
+}
+
+.car-chip:hover {
+    background: #343438;
+}
+
+.car-chip.selected {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.car-chip.taken,
+.car-chip:disabled {
+    opacity: .35;
+    cursor: not-allowed;
+}
+
+.car-chip.taken:hover,
+.car-chip:disabled:hover {
+    background: #2b2b2e;
+}
+
+/* Errors */
+.drivers-error {
+    margin: -6px 0 0;
+    min-height: 20px;
+    color: crimson;
+}
+
+/* Driver list */
+.drivers-container {
+    display: grid;
+    gap: 12px;
+}
+
+.driver-row {
+    display: grid;
+    grid-template-columns: 40px 1fr auto auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 50px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.driver-badge {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #0a0a0c;
+    color: var(--foreground);
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.driver-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding-left: 10px;
+}
+
+.edit-driver-btn,
+.rmv-driver-btn,
+.save-driver-btn,
+.cancel-driver-btn {
+    font-size: .9rem;
+    min-height: 38px;
+    padding: 0 12px;
+}
+
+.edit-driver-btn,
+.rmv-driver-btn {
+    justify-self: end;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .car-picker {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    #front-desk-app {
+        width: min(100vw - 24px, 1200px);
+        margin-top: 20px;
+    }
+
+    .session-card {
+        padding: 18px;
+    }
+
+    .driver-form {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "carlabel"
+            "cars"
+            "name"
+            "submit";
+    }
+
+    .driver-form>button[type="submit"] {
+        width: 100%;
+        justify-self: stretch;
+    }
+
+    .driver-row {
+        grid-template-columns: 48px 1fr;
+        align-items: center;
+    }
+
+    .edit-driver-btn,
+    .rmv-driver-btn,
+    .save-driver-btn,
+    .cancel-driver-btn {
+        justify-self: start;
+    }
+
+    .rmv-session-btn {
+        align-self: start;
+    }
 }
