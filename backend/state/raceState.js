@@ -52,12 +52,28 @@ function getSessionById(sessionId) {
 
 /**
  * Step 4: Add a driver to a session
- * Auto-assigns the lowest available car number (1-8)
+ * Receptionist must specify the car number (1-8)
  */
-function addDriver(sessionId, driverName) {
-  // Validate inputs
+function addDriver(sessionId, driverName, carNumber) {
+  // Validate driver name
   if (!driverName || typeof driverName !== 'string' || driverName.trim() === '') {
     return { success: false, error: 'Driver name is required' }
+  }
+  
+  // Validate car number is provided
+  if (carNumber === undefined || carNumber === null) {
+    return { success: false, error: 'Car number is required' }
+  }
+  
+  // Validate car number is a number
+  const carNum = parseInt(carNumber, 10)
+  if (isNaN(carNum)) {
+    return { success: false, error: 'Car number must be a valid number' }
+  }
+  
+  // Validate car number is in valid range (1-8)
+  if (carNum < 1 || carNum > 8) {
+    return { success: false, error: 'Car number must be between 1 and 8' }
   }
   
   // Find the session
@@ -72,23 +88,19 @@ function addDriver(sessionId, driverName) {
     return { success: false, error: 'Driver name must be unique in this session' }
   }
   
+  // Check if car number is already taken in this session
+  const carTaken = session.drivers.some(d => d.carNumber === carNum)
+  if (carTaken) {
+    return { success: false, error: `Car ${carNum} is already assigned in this session` }
+  }
+  
   // Check max drivers (8 cars available)
   if (session.drivers.length >= 8) {
     return { success: false, error: 'Session is full (max 8 drivers)' }
   }
   
-  // Find lowest available car number (1-8)
-  const usedCars = session.drivers.map(d => d.carNumber)
-  let carNumber = null
-  for (let i = 1; i <= 8; i++) {
-    if (!usedCars.includes(i)) {
-      carNumber = i
-      break
-    }
-  }
-  
-  // Add the driver
-  const newDriver = { name: driverName, carNumber }
+  // Add the driver with the specified car number
+  const newDriver = { name: driverName, carNumber: carNum }
   session.drivers.push(newDriver)
   
   return { success: true, driver: { ...newDriver } }
@@ -99,10 +111,32 @@ function addDriver(sessionId, driverName) {
  * Returns null if no sessions exist
  */
 function getNextRaceSession() {
-  if (state.sessions.length === 0) {
+  // If no race is active, return the first queued session
+  if (state.currentRace.sessionId === null) {
+    if (state.sessions.length === 0) {
+      return { success: false, error: 'No queued sessions' }
+    }
+    return { success: true, data: JSON.parse(JSON.stringify(state.sessions[0])) }
+  }
+  
+  // If a race is active, find the next queued session after it
+  const activeIndex = state.sessions.findIndex(s => s.id === state.currentRace.sessionId)
+  
+  // If active session not found in queue (shouldn't happen), return first session
+  if (activeIndex === -1) {
+    if (state.sessions.length === 0) {
+      return { success: false, error: 'No queued sessions' }
+    }
+    return { success: true, data: JSON.parse(JSON.stringify(state.sessions[0])) }
+  }
+  
+  // Return the next session after the active one
+  const nextIndex = activeIndex + 1
+  if (nextIndex >= state.sessions.length) {
     return { success: false, error: 'No queued sessions' }
   }
-  return { success: true, data: JSON.parse(JSON.stringify(state.sessions[0])) }
+  
+  return { success: true, data: JSON.parse(JSON.stringify(state.sessions[nextIndex])) }
 }
 
 /**

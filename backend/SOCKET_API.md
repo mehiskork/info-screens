@@ -22,6 +22,48 @@ socket.on('disconnect', () => {
 
 ---
 
+## Broadcast Events
+
+The server emits broadcast events to all connected clients when certain state changes occur. These events have no payload and serve as notifications to re-fetch data.
+
+### Next Race Changed
+
+**Event:** `nextRace:changed`  
+**Direction:** Server → All Clients (broadcast)  
+**Payload:** None
+
+Emitted when the next race queue changes due to:
+- Session added or removed
+- Driver added, removed, or updated in any session
+- Race started (active race no longer shows as "next")
+
+```javascript
+socket.on('nextRace:changed', () => {
+  // Re-fetch the next race data
+  socket.emit('getNextRace', (response) => {
+    if (response.success) {
+      console.log('Next race updated:', response.data)
+      // Update UI with new next race data
+    }
+  })
+})
+```
+
+**Usage Pattern for /next-race frontend:**
+```javascript
+// Listen for changes
+socket.on('nextRace:changed', loadNextRace)
+
+// Initial load
+function loadNextRace() {
+  socket.emit('getNextRace', (response) => {
+    // Update display
+  })
+}
+```
+
+---
+
 ## Implemented Events
 
 ### Session Management
@@ -110,6 +152,12 @@ socket.emit('getNextRace', (response) => {
 })
 ```
 
+**Notes:**
+- Returns the next queued session (not the currently active race)
+- If no race is active, returns the first session in the queue
+- If a race is active, returns the session after it in the queue
+- Returns error if no sessions are queued
+
 ---
 
 ### Driver Management
@@ -118,18 +166,22 @@ socket.emit('getNextRace', (response) => {
 
 **Event:** `driver:add`  
 **Auth:** None (pending)  
-**Payload:** `{ sessionId: number, driverName: string }`  
+**Payload:** `{ sessionId: number, driverName: string, carNumber: number }`  
 **Response:** `{ success: boolean, driver?: Object, error?: string }`
 
 ```javascript
-socket.emit('driver:add', { sessionId: 1, driverName: 'Alice' }, (response) => {
+socket.emit('driver:add', { sessionId: 1, driverName: 'Alice', carNumber: 3 }, (response) => {
   if (response.success) {
     console.log('Driver added:', response.driver)
-    // response.driver = { name: "Alice", carNumber: 1 }
+    // response.driver = { name: "Alice", carNumber: 3 }
   } else {
     console.error(response.error)
     // Possible errors:
     // - "Session not found"
+    // - "Car number is required"
+    // - "Car number must be a valid number"
+    // - "Car number must be between 1 and 8"
+    // - "Car X is already assigned in this session"
     // - "Driver name must be unique in this session"
     // - "Session is full (max 8 drivers)"
   }
@@ -137,7 +189,8 @@ socket.emit('driver:add', { sessionId: 1, driverName: 'Alice' }, (response) => {
 ```
 
 **Notes:**
-- Car numbers (1-8) are auto-assigned (lowest available)
+- **Car number (1-8) must be provided by the receptionist** (manual selection)
+- Car numbers must be unique within a session
 - Driver names must be unique within a session
 - Maximum 8 drivers per session
 
@@ -379,8 +432,8 @@ socket.on('connect', () => {
     const sessionId = r.session.id
     
     // 2. Add drivers
-    socket.emit('driver:add', { sessionId, driverName: 'Alice' }, console.log)
-    socket.emit('driver:add', { sessionId, driverName: 'Bob' }, console.log)
+    socket.emit('driver:add', { sessionId, driverName: 'Alice', carNumber: 1 }, console.log)
+    socket.emit('driver:add', { sessionId, driverName: 'Bob', carNumber: 2 }, console.log)
     
     // 3. Start race
     socket.emit('race:start', { sessionId }, console.log)
