@@ -7,8 +7,6 @@ const addSessionBtn = document.getElementById("add-session-btn");
 const sessionsContainer = document.getElementById("sessions-container");
 
 
-
-
 let socket = null;
 
 // all names uppercase when adding a driver. Can change in edit if needed
