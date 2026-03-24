@@ -86,7 +86,7 @@ socket.emit('getSessions', (response) => {
 ```javascript
 {
   id: 1,              // Unique session ID
-  drivers: [          // Array of drivers in this session
+  drivers: [          // Array of drivers in this session (sorted by carNumber)
     { 
       name: "Alice",    // Driver name
       carNumber: 1      // Assigned car (1-8)
@@ -94,6 +94,11 @@ socket.emit('getSessions', (response) => {
   ]
 }
 ```
+
+**Notes:**
+- Returns only **queued upcoming sessions** (excludes the currently active race)
+- Drivers within each session are **sorted by carNumber** (ascending, numeric)
+- If a race is active, that session will not appear in the results
 
 ---
 
@@ -157,6 +162,7 @@ socket.emit('getNextRace', (response) => {
 - If no race is active, returns the first session in the queue
 - If a race is active, returns the session after it in the queue
 - Returns error if no sessions are queued
+- Drivers are **sorted by carNumber** (ascending, numeric) in returned data
 
 ---
 
