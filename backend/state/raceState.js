@@ -35,11 +35,31 @@ function addSession() {
 }
 
 /**
+ * Helper: Sort drivers by car number (ascending, numeric)
+ */
+function sortDriversByCarNumber(drivers) {
+  return drivers.sort((a, b) => a.carNumber - b.carNumber)
+}
+
+/**
  * Step 2: Get all sessions
  * Returns a deep copy to prevent external mutations
+ * Filters out the currently active race session
+ * Sorts drivers by car number in each session
  */
 function getAllSessions() {
-  return JSON.parse(JSON.stringify(state.sessions))
+  // Filter out the active race session from the queue
+  const queuedSessions = state.sessions.filter(session => {
+    return session.id !== state.currentRace.sessionId
+  })
+  
+  // Deep copy and sort drivers in each session
+  const sessionsCopy = JSON.parse(JSON.stringify(queuedSessions))
+  sessionsCopy.forEach(session => {
+    sortDriversByCarNumber(session.drivers)
+  })
+  
+  return sessionsCopy
 }
 
 /**
@@ -116,7 +136,9 @@ function getNextRaceSession() {
     if (state.sessions.length === 0) {
       return { success: false, error: 'No queued sessions' }
     }
-    return { success: true, data: JSON.parse(JSON.stringify(state.sessions[0])) }
+    const session = JSON.parse(JSON.stringify(state.sessions[0]))
+    sortDriversByCarNumber(session.drivers)
+    return { success: true, data: session }
   }
   
   // If a race is active, find the next queued session after it
@@ -127,7 +149,9 @@ function getNextRaceSession() {
     if (state.sessions.length === 0) {
       return { success: false, error: 'No queued sessions' }
     }
-    return { success: true, data: JSON.parse(JSON.stringify(state.sessions[0])) }
+    const session = JSON.parse(JSON.stringify(state.sessions[0]))
+    sortDriversByCarNumber(session.drivers)
+    return { success: true, data: session }
   }
   
   // Return the next session after the active one
@@ -136,7 +160,9 @@ function getNextRaceSession() {
     return { success: false, error: 'No queued sessions' }
   }
   
-  return { success: true, data: JSON.parse(JSON.stringify(state.sessions[nextIndex])) }
+  const session = JSON.parse(JSON.stringify(state.sessions[nextIndex]))
+  sortDriversByCarNumber(session.drivers)
+  return { success: true, data: session }
 }
 
 /**
