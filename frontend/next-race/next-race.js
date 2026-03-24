@@ -19,6 +19,11 @@ socket.on("connect", () => {
     loadNextRace();
 });
 
+socket.on("nextRace:changed", () => {
+    console.log("nextRace:changed received");
+    loadNextRace();
+});
+
 
 
 function loadNextRace() {
