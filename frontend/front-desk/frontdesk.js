@@ -8,6 +8,7 @@ const sessionsContainer = document.getElementById("sessions-container");
 
 
 let socket = null;
+const MAX_DRIVER_NAME_LENGTH = 40;
 
 // all names uppercase when adding a driver. Can change in edit if needed
 function formatDriverName(name) {
@@ -183,7 +184,7 @@ function renderSessions(sessions) {
             const row = document.createElement("div");
             row.className = "driver-row";
             row.innerHTML = `
-            <span class="driver-badge">${driver.carNumber}</span>
+            <span class="driver-badge">Car ${driver.carNumber}</span>
             <span class="driver-name">${driver.name}</span>
             <button class = "edit-driver-btn" type="button">Edit</button>
             <button class = "rmv-driver-btn" type="button">Remove</button>
@@ -216,7 +217,7 @@ function renderSessions(sessions) {
 
                 row.innerHTML = `
                 <span class="driver-badge">Car ${driver.carNumber}</span>
-                <input class="edit-driver-input" type="text" maxlength="40" value="${driver.name}">
+                <input class="edit-driver-input" type="text" maxlength="${MAX_DRIVER_NAME_LENGTH}" value="${driver.name}">
                 <button class="save-driver-btn" type="button">Save</button>
                 <button class="cancel-driver-btn" type="button">Cancel</button>
                 `;
