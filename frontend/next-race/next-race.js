@@ -53,8 +53,8 @@ function renderDriverRow(driver) {
     row.className = "driver-row";
 
     row.innerHTML = `
-        <div class="car-badge">Car ${driver.carNumber}</div>
-        <div class="driver-name">${driver.name}</div>
+        <span class="driver-badge">Car ${driver.carNumber}</span>
+        <span class="driver-name">${driver.name}</span>
     `;
 
     return row
