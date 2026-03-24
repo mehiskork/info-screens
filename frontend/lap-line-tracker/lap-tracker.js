@@ -11,17 +11,47 @@ const lapTrackerPanel = document.getElementById("lap-tracker-panel")
 const carButtons = document.querySelectorAll(".car-btn")
 const statusMessage = document.getElementById("status-message")
 
+// Wait for socket connection before enabling auth
+let socketConnected = false
+
+socket.on("connect", () => {
+    console.log("Connected to server")
+    socketConnected = true
+    errorMessage.textContent = ""
+})
+
+socket.on("disconnect", () => {
+    console.log("Disconnected from server")
+    socketConnected = false
+})
+
 // Authentication
 unlockBtn.addEventListener("click", () => {
     const accessKey = accessKeyInput.value.trim()
+    
+    if (!socketConnected) {
+        errorMessage.textContent = "Connecting to server..."
+        return
+    }
     
     if (accessKey === "") {
         errorMessage.textContent = "Enter observer key"
         return
     }
     
+    // Disable button while authenticating
+    unlockBtn.disabled = true
+    errorMessage.textContent = ""
+    
     socket.emit("auth:observer", { accessKey }, (response) => {
         console.log("auth:observer response:", response)
+        
+        unlockBtn.disabled = false
+        
+        if (!response) {
+            errorMessage.textContent = "No response from server"
+            return
+        }
         
         if (!response.success) {
             errorMessage.textContent = response.error || "Invalid access key"
@@ -79,12 +109,3 @@ function formatTime(ms) {
     if (ms === null || ms === undefined) return "—"
     return (ms / 1000).toFixed(2) + "s"
 }
-
-// Connection status
-socket.on("connect", () => {
-    console.log("Connected to server")
-})
-
-socket.on("disconnect", () => {
-    console.log("Disconnected from server")
-})
