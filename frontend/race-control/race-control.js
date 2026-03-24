@@ -2,6 +2,14 @@ const socket = io()
 
 let raceFinished = false
 
+// Lock screen elements
+const lockScreen = document.getElementById("lock-screen")
+const accessKeyInput = document.getElementById("access-key")
+const unlockBtn = document.getElementById("unlock-btn")
+const errorMessage = document.getElementById("error-message")
+
+// Race panel elements
+const racePanel = document.getElementById("race-panel")
 const status = document.getElementById("race-status")
 const startBtn = document.getElementById("start")
 const safeBtn = document.getElementById("safe")
@@ -12,20 +20,37 @@ const endSessionBtn = document.getElementById("end-session")
 
 endSessionBtn.style.display = "none"
 
-function askSafetyKey() {
-
-    const key = prompt("Enter SAFETY KEY")
-
-    socket.emit("auth:submit", {
-        role: "safety",
-        key: key
+// Authentication
+unlockBtn.addEventListener("click", () => {
+    const accessKey = accessKeyInput.value.trim()
+    
+    if (accessKey === "") {
+        errorMessage.textContent = "Enter safety key"
+        return
+    }
+    
+    socket.emit("auth:safety", { accessKey }, (response) => {
+        console.log("auth:safety response:", response)
+        
+        if (!response.success) {
+            errorMessage.textContent = response.error || "Invalid access key"
+            return
+        }
+        
+        // Authentication successful - unlock interface
+        lockScreen.hidden = true
+        racePanel.hidden = false
     })
+})
 
-}
+// Allow Enter key to submit
+accessKeyInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        unlockBtn.click()
+    }
+})
 
 startBtn.onclick = () => {
-
-    askSafetyKey()
 
     socket.emit("race:start")
 
