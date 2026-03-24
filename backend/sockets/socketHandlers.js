@@ -11,6 +11,8 @@ const {
   removeDriver,
   updateDriver,
   authenticateReceptionist,
+  authenticateSafety,
+  authenticateObserver,
   getNextRaceSession,
   startRace,
   changeRaceMode,
@@ -88,6 +90,20 @@ function initializeSocketHandlers(io) {
     socket.on('auth:receptionist', async (data, callback) => {
       const { accessKey } = data
       const result = await authenticateReceptionist(accessKey)
+      callback(result)
+    })
+    
+    // Authenticate safety official
+    socket.on('auth:safety', async (data, callback) => {
+      const { accessKey } = data
+      const result = await authenticateSafety(accessKey)
+      callback(result)
+    })
+    
+    // Authenticate lap-line observer
+    socket.on('auth:observer', async (data, callback) => {
+      const { accessKey } = data
+      const result = await authenticateObserver(accessKey)
       callback(result)
     })
     

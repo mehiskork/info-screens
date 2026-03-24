@@ -247,6 +247,34 @@ async function authenticateReceptionist(accessKey) {
   }
 }
 
+/**
+ * Authenticate safety official access key
+ * Includes 500ms delay on wrong key (per requirements)
+ */
+async function authenticateSafety(accessKey) {
+  if (accessKey === KEYS.safety) {
+    return { success: true, role: 'safety' }
+  } else {
+    // 500ms delay on wrong key to prevent brute force
+    await new Promise(resolve => setTimeout(resolve, 500))
+    return { success: false, error: 'Invalid access key' }
+  }
+}
+
+/**
+ * Authenticate lap-line observer access key
+ * Includes 500ms delay on wrong key (per requirements)
+ */
+async function authenticateObserver(accessKey) {
+  if (accessKey === KEYS.observer) {
+    return { success: true, role: 'observer' }
+  } else {
+    // 500ms delay on wrong key to prevent brute force
+    await new Promise(resolve => setTimeout(resolve, 500))
+    return { success: false, error: 'Invalid access key' }
+  }
+}
+
 // ============ RACE CONTROL ============
 
 /**
@@ -459,6 +487,8 @@ module.exports = {
   removeDriver,
   updateDriver,
   authenticateReceptionist,
+  authenticateSafety,
+  authenticateObserver,
   startRace,
   changeRaceMode,
   getCurrentRaceStatus,

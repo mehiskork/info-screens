@@ -488,11 +488,64 @@ socket.emit('auth:receptionist', { accessKey: 'your-key-here' }, (response) => {
 
 ---
 
+### Authenticate Safety Official
+
+**Event:** `auth:safety`  
+**Payload:** `{ accessKey: string }`  
+**Response:** `{ success: boolean, role?: string, error?: string }`
+
+```javascript
+socket.emit('auth:safety', { accessKey: 'your-key-here' }, (response) => {
+  if (response.success) {
+    console.log('Authenticated as:', response.role)
+    // response.role = "safety"
+    // Grant access to race control interface
+  } else {
+    console.error(response.error) // "Invalid access key"
+    // Note: Wrong key responses include a 500ms delay to prevent brute force
+  }
+})
+```
+
+**Notes:**
+- Correct key: Instant response (~1ms)
+- Wrong key: 500ms delay before response (security feature)
+- Access key stored in `.env` file as `SAFETY_KEY`
+- Used by race control interface to authenticate safety officials
+
+---
+
+### Authenticate Observer
+
+**Event:** `auth:observer`  
+**Payload:** `{ accessKey: string }`  
+**Response:** `{ success: boolean, role?: string, error?: string }`
+
+```javascript
+socket.emit('auth:observer', { accessKey: 'your-key-here' }, (response) => {
+  if (response.success) {
+    console.log('Authenticated as:', response.role)
+    // response.role = "observer"
+    // Grant access to lap-line tracker interface
+  } else {
+    console.error(response.error) // "Invalid access key"
+    // Note: Wrong key responses include a 500ms delay to prevent brute force
+  }
+})
+```
+
+**Notes:**
+- Correct key: Instant response (~1ms)
+- Wrong key: 500ms delay before response (security feature)
+- Access key stored in `.env` file as `OBSERVER_KEY`
+- Used by lap-line tracker interface to authenticate observers
+
+---
+
 ## TODO - Not Yet Implemented
 
 ### Authentication
-- `auth:safety` - Authenticate safety official
-- `auth:observer` - Authenticate observer (lap-line observer)
+- ✅ All authentication implemented (receptionist, safety, observer)
 
 ### Session Control
 - `race:endSession` - Formally end race session after cars return to pit
