@@ -3,7 +3,7 @@ const raceCard = document.getElementById("race-card");
 const sessionTitle = document.getElementById("session-title");
 const driversList = document.getElementById("drivers-list");
 const emptyState = document.getElementById("empty-state");
-
+const paddockMessage = document.getElementById("paddock-message");
 
 // checks if fullscreen or not and names the button
 function updateFullscreenButton() {
@@ -50,22 +50,22 @@ function loadNextRace() {
     socket.emit("getNextRace", (response) => {
         console.log("getNextRace response:", response);
 
-
-        // checks if request fails or there is no data
-        if (!response.success || !response.data) {
-            showEmptyState();
+        if (!response.success) {
+            showState("empty");
             return;
         }
 
-        // sends data to renderNextRace
-        renderNextRace(response.data);
-    })
+        showState(response.state || "upcoming", response.data);
+    });
 }
 
 // put the page into no upcoming race mode
 function showEmptyState() {
     emptyState.hidden = false;
     raceCard.hidden = true;
+    paddockMessage.hidden = true;
+    sessionTitle.textContent = "";
+    driversList.innerHTML = "";
 }
 
 function renderDriverRow(driver) {
@@ -80,9 +80,11 @@ function renderDriverRow(driver) {
     return row
 }
 
-function renderNextRace(session) {
+function showUpcomingState(session) {
     emptyState.hidden = true;
     raceCard.hidden = false;
+    paddockMessage.hidden = true;
+
     sessionTitle.textContent = `Session ${session.id}`;
     // clears the current contents of driversList
     driversList.innerHTML = "";
@@ -95,3 +97,28 @@ function renderNextRace(session) {
 
     });
 }
+
+function showPaddockState(session) {
+    emptyState.hidden = true;
+    raceCard.hidden = false;
+    paddockMessage.hidden = false;
+
+    sessionTitle.textContent = `Session ${session.id}`;
+    driversList.innerHTML = "";
+
+    session.drivers.forEach((driver) => {
+        const row = renderDriverRow(driver);
+        driversList.appendChild(row);
+    });
+}
+
+function showState(state, session = null) {
+    if (state === "empty") return showEmptyState();
+    if (state === "upcoming" && session) return showUpcomingState(session);
+    if (state === "paddock" && session) return showPaddockState(session);
+
+    showEmptyState();
+
+
+}
+
