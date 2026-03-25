@@ -2,54 +2,71 @@ const socket = io()
 
 const screen = document.getElementById("screen")
 
+let lastUpdate = Date.now()
+
+// FULLSCREEN BUTTON
+document.getElementById("fullscreen").onclick = () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen()
+    } else {
+        document.exitFullscreen()
+    }
+}
+
+// CONNECTION STATUS
+socket.on("connect", () => {
+    screen.innerText = "CONNECTED"
+})
+
+socket.on("disconnect", () => {
+    screen.style.background = "black"
+    screen.style.color = "white"
+    screen.innerText = "DISCONNECTED"
+})
+
+// MAIN STATE SYNC (FIXED)
 socket.on("state:update", (state) => {
+
+    console.log("STATE:", state)
+
+    lastUpdate = Date.now()
 
     const mode = state.raceMode
 
-    screen.style.animation = ""
+    // RESET STYLE
+    screen.style.background = ""
+    screen.style.color = "white"
+    screen.style.textShadow = "none"
+    screen.style.fontWeight = "normal"
 
-    if (mode === "SAFE") {
-
-        screen.style.background =
-            "repeating-linear-gradient(45deg, #008000 0px, #008000 40px, #00cc00 40px, #00cc00 80px)"
-
-        screen.style.color = "white"
+    if (mode === "safe") {
+        screen.style.background = "green"
         screen.innerText = "SAFE"
-
-        screen.style.animation = "moveFlag 6s linear infinite"
     }
 
-    if (mode === "HAZARD") {
-
-        screen.style.background =
-            "repeating-linear-gradient(45deg, yellow 0px, yellow 40px, orange 40px, orange 80px)"
-
+    if (mode === "hazard") {
+        screen.style.background = "yellow"
         screen.style.color = "black"
         screen.innerText = "HAZARD"
-
-        screen.style.animation = "flash 1s infinite"
     }
 
-    if (mode === "DANGER") {
-
-        screen.style.background =
-            "repeating-linear-gradient(45deg, red 0px, red 40px, darkred 40px, darkred 80px)"
-
-        screen.style.color = "white"
+    if (mode === "danger") {
+        screen.style.background = "red"
         screen.innerText = "DANGER"
-
-        screen.style.animation = "flash 1s infinite"
     }
 
-    if (mode === "FINISH") {
-
+    if (mode === "finish") {
         screen.style.background =
-            "repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 120px 120px"
-
-        screen.style.color = "red"
+            "repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 400px 400px "
         screen.innerText = "FINISH"
-        screen.style.fontWeight = "bold"
-        screen.style.textShadow = "4px 4px 10px black"
     }
-
 })
+
+// NO SIGNAL (OPTIONAL)
+setInterval(() => {
+    if (Date.now() - lastUpdate > 150000) {
+        screen.style.background = "black"
+        screen.style.color = "white"
+        screen.innerText = "NO SIGNAL"
+    }
+}, 1000)
