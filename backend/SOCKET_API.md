@@ -36,6 +36,7 @@ Emitted when the next race queue changes due to:
 - Session added or removed
 - Driver added, removed, or updated in any session
 - Race started (active race no longer shows as "next")
+- Race session ended (cleared from paddock state)
 
 ```javascript
 socket.on('nextRace:changed', () => {
@@ -61,6 +62,46 @@ function loadNextRace() {
   })
 }
 ```
+
+---
+
+### Race State Update
+
+**Event:** `state:update`  
+**Direction:** Server → All Clients (broadcast)  
+**Payload:** `{ raceMode: string, timer: Object }`
+
+Emitted when race state changes (mode change or race start). Provides synchronized race mode and timer information for all clients.
+
+```javascript
+socket.on('state:update', (data) => {
+  console.log('Race mode:', data.raceMode)
+  console.log('Timer:', data.timer)
+  // data = {
+  //   raceMode: "racing",  // "danger", "safe", "racing", "paused", or "finished"
+  //   timer: {
+  //     running: true,
+  //     endsAt: 1234567890  // Unix timestamp in milliseconds
+  //   }
+  // }
+})
+```
+
+**Race Modes:**
+- `'danger'` - No active race, danger condition (red flag)
+- `'safe'` - Safety car on track (yellow flag)
+- `'racing'` - Normal racing (green flag)
+- `'paused'` - Race paused
+- `'finished'` - Race ended
+
+**Timer Object:**
+- When race is active: `{ running: true, endsAt: <timestamp> }`
+- When no race: `{ running: false }`
+
+**Emitted When:**
+- Race started
+- Race mode changed (safe/racing/paused/finished)
+- Client needs synchronized state for flag displays and countdown timers
 
 ---
 
@@ -144,12 +185,14 @@ socket.emit('session:remove', { sessionId: 1 }, (response) => {
 **Event:** `getNextRace`  
 **Auth:** None (public)  
 **Payload:** None  
-**Response:** `{ success: boolean, data?: Object, error?: string }`
+**Response:** `{ success: boolean, state?: string, data?: Object, error?: string }`
 
 ```javascript
 socket.emit('getNextRace', (response) => {
   if (response.success) {
+    console.log('Next race state:', response.state)
     console.log('Next race:', response.data)
+    // response.state = "upcoming" or "paddock"
     // response.data = { id: 1, drivers: [...] }
   } else {
     console.log(response.error) // "No queued sessions"
@@ -157,12 +200,24 @@ socket.emit('getNextRace', (response) => {
 })
 ```
 
+**Response States:**
+- `'upcoming'` - Normal queued session ready to race
+- `'paddock'` - Finished session requiring paddock clearance (drivers must return cars to pit)
+
 **Notes:**
 - Returns the next queued session (not the currently active race)
 - If no race is active, returns the first session in the queue
 - If a race is active, returns the session after it in the queue
-- Returns error if no sessions are queued
+- After finishing a race, the finished session enters "paddock" state before being cleared
+- Returns error if no sessions are queued and no session is in paddock
 - Drivers are **sorted by carNumber** (ascending, numeric) in returned data
+
+**Paddock Flow:**
+1. Race finishes (mode changed to 'finished')
+2. Session moves to paddock state (visible to next-race display)
+3. Next-race display shows "Proceed to paddock" message with driver list
+4. Safety Official ends session via `session:end` when cars return to pit
+5. Paddock clears, next queued session becomes active
 
 ---
 
@@ -315,11 +370,44 @@ socket.emit('race:changeMode', { mode: 'racing' }, (response) => {
 - `'safe'` - Safety car on track
 - `'racing'` - Normal racing
 - `'paused'` - Race paused
-- `'finished'` - Ends race, moves to lastFinishedRace, removes session from queue
+- `'finished'` - Ends race, moves to paddock state (waiting for cars to return)
 
 **Notes:**
-- Setting mode to `'finished'` automatically ends the race and removes the session
-- After finishing, you can start a new race
+- Setting mode to `'finished'` automatically ends the race and moves session to paddock state
+- After finishing, session remains visible on next-race display until cleared via `session:end`
+- After paddock is cleared, you can start a new race
+
+---
+
+#### End Race Session
+
+**Event:** `session:end`  
+**Auth:** None (pending - safety officer only)  
+**Payload:** None  
+**Response:** `{ success: boolean, message?: string, error?: string }`
+
+```javascript
+socket.emit('session:end', (response) => {
+  if (response.success) {
+    console.log(response.message) // "Session ended - next session ready"
+    // Paddock cleared, next race can proceed
+  } else {
+    console.error(response.error) // "No ended session to clear"
+  }
+})
+```
+
+**Notes:**
+- Used by Safety Official to formally end a race session after cars return to paddock
+- Only works when a session is in paddock state (race finished, waiting for clearance)
+- Automatically emits `nextRace:changed` to update all clients
+- Clears paddock state and makes next queued session available
+- Call this after drivers have returned their cars to the pit area
+
+**Usage in Race Control:**
+1. Finish race (set mode to 'finished')
+2. Wait for all drivers to return cars to paddock
+3. Call `session:end` to clear session and proceed to next race
 
 ---
 
@@ -548,12 +636,12 @@ socket.emit('auth:observer', { accessKey: 'your-key-here' }, (response) => {
 - ✅ All authentication implemented (receptionist, safety, observer)
 
 ### Session Control
-- `race:endSession` - Formally end race session after cars return to pit
+- ✅ `session:end` - Formally end race session after cars return to pit (RT44)
 
 ### Real-time Broadcasting
-- Auto-broadcast session changes to all clients
-- Auto-broadcast race updates to all clients
-- Auto-broadcast lap times to all clients
+- ✅ Auto-broadcast race state updates (`state:update` event - RT30/RT42)
+- ✅ Auto-broadcast next race changes (`nextRace:changed` event)
+- Future: Auto-broadcast lap times to all clients
 
 ---
 
@@ -564,18 +652,19 @@ socket.emit('auth:observer', { accessKey: 'your-key-here' }, (response) => {
 - Add/remove/update drivers (manual car assignment 1-8)
 - Authenticate receptionists, safety officials, and observers with access keys
 - Start races and control race modes (safe/racing/paused/finished)
-- Query next race in queue
+- Query next race in queue with state information (upcoming/paddock)
+- End race sessions after paddock return via `session:end` event
 - Record lap crossings and calculate lap times
 - Get real-time leaderboard sorted by best lap time
 - Get race status with time remaining
-- Next race updates broadcast in real-time (nextRace:changed event)
+- Real-time broadcasts: next race updates (`nextRace:changed`), race state updates (`state:update`)
 
 **Available Interfaces:**
 - `/front-desk` - Receptionist authentication, session and driver management
-- `/next-race` - Public display of next race with real-time updates
-- `/race-control` - Safety official authentication, race start and mode control
+- `/next-race` - Public display of next race with paddock state support and real-time updates
+- `/race-control` - Safety official authentication, race start/mode control, session end
 - `/race-countdown` - Race timer display (needs connection to backend)
 - `/race-flags` - Race status flag display (needs connection to backend)
 - `/lap-line-tracker` - Observer authentication, lap crossing recording (NEW in RT41)
 
-**Pending:** Real-time broadcasting for race status/lap events, formal session end event
+**Pending:** Real-time broadcasting for lap events

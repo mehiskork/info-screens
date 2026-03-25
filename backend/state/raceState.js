@@ -13,7 +13,10 @@ const state = {
   },
   
   // For "see last race" requirement
-  lastFinishedRace: null  // copy of finished race data
+  lastFinishedRace: null,  // copy of finished race data
+  
+  // For paddock flow - session finished but not yet ended by Safety Official
+  endedSession: null  // session waiting for drivers to proceed to paddock
 }
 
 // ============ SESSION MANAGEMENT ============
@@ -131,6 +134,13 @@ function addDriver(sessionId, driverName, carNumber) {
  * Returns null if no sessions exist
  */
 function getNextRaceSession() {
+  // If there's an ended session waiting for paddock, show it with paddock state
+  if (state.endedSession !== null) {
+    const session = JSON.parse(JSON.stringify(state.endedSession))
+    sortDriversByCarNumber(session.drivers)
+    return { success: true, state: 'paddock', data: session }
+  }
+  
   // If no race is active, return the first queued session
   if (state.currentRace.sessionId === null) {
     if (state.sessions.length === 0) {
@@ -138,7 +148,7 @@ function getNextRaceSession() {
     }
     const session = JSON.parse(JSON.stringify(state.sessions[0]))
     sortDriversByCarNumber(session.drivers)
-    return { success: true, data: session }
+    return { success: true, state: 'upcoming', data: session }
   }
   
   // If a race is active, find the next queued session after it
@@ -151,7 +161,7 @@ function getNextRaceSession() {
     }
     const session = JSON.parse(JSON.stringify(state.sessions[0]))
     sortDriversByCarNumber(session.drivers)
-    return { success: true, data: session }
+    return { success: true, state: 'upcoming', data: session }
   }
   
   // Return the next session after the active one
@@ -162,7 +172,7 @@ function getNextRaceSession() {
   
   const session = JSON.parse(JSON.stringify(state.sessions[nextIndex]))
   sortDriversByCarNumber(session.drivers)
-  return { success: true, data: session }
+  return { success: true, state: 'upcoming', data: session }
 }
 
 /**
@@ -298,6 +308,9 @@ function startRace(sessionId) {
     return { success: false, error: 'A race is already in progress' }
   }
   
+  // Clear ended session when starting new race (paddock flow complete)
+  state.endedSession = null
+  
   // Initialize lap tracking for each car
   const laps = {}
   for (const driver of session.drivers) {
@@ -338,33 +351,53 @@ function changeRaceMode(mode) {
     return { success: false, error: 'Invalid mode. Must be: safe, racing, paused, or finished' }
   }
   
-  // If finishing the race, move it to lastFinishedRace and reset currentRace
+  // If finishing the race, keep session for paddock flow
   if (mode === 'finished') {
     state.currentRace.mode = 'finished'
     state.lastFinishedRace = JSON.parse(JSON.stringify(state.currentRace))
     
-    // Remove the finished session from the queue
+    // Find the session in queue
     const sessionId = state.currentRace.sessionId
     const index = state.sessions.findIndex(s => s.id === sessionId)
+    
+    // Move session to endedSession (for paddock display)
     if (index !== -1) {
+      state.endedSession = JSON.parse(JSON.stringify(state.sessions[index]))
       state.sessions.splice(index, 1)
     }
     
-    // Reset current race
+    // Reset current race to allow next race to start
     state.currentRace = {
       sessionId: null,
-      mode: null,
+      mode: 'danger',
       startTime: null,
       laps: {}
     }
     
-    return { success: true, message: 'Race finished and session removed from queue' }
+    return { success: true, message: 'Race finished - drivers should return to pit lane' }
   }
   
   // Update mode for non-finished states
   state.currentRace.mode = mode
   
   return { success: true, mode: state.currentRace.mode }
+}
+
+/**
+ * End the race session after cars have returned to pit lane
+ * Called by Safety Official to clear the paddock state
+ * Removes the ended session and broadcasts next race update
+ */
+function endSession() {
+  // Check if there's an ended session waiting
+  if (state.endedSession === null) {
+    return { success: false, error: 'No ended session to clear' }
+  }
+  
+  // Clear the ended session
+  state.endedSession = null
+  
+  return { success: true, message: 'Session ended - next session ready' }
 }
 
 /**
@@ -491,6 +524,7 @@ module.exports = {
   authenticateObserver,
   startRace,
   changeRaceMode,
+  endSession,
   getCurrentRaceStatus,
   recordLapCrossing,
   getLeaderboard
