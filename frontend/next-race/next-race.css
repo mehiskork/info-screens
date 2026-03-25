@@ -97,6 +97,10 @@ body {
     background: var(--card);
 }
 
+.race-card[hidden] {
+    display: none;
+}
+
 .race-card h2 {
     margin: 0;
     font-size: 1.8rem;

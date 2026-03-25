@@ -133,9 +133,6 @@ function renderSessions(sessions) {
         <button class= "rmv-session-btn" type=button>Remove Session</button>
         `;
 
-
-
-
         const carPicker = card.querySelector(".car-picker");
         const carNumberInput = card.querySelector(".car-number-input");
 
@@ -190,8 +187,6 @@ function renderSessions(sessions) {
                     driversError.textContent = response.error || "Could not add driver";
                     return;
                 }
-
-                loadSessions();
             });
         });
 
@@ -223,8 +218,6 @@ function renderSessions(sessions) {
                         errorMessage.textContent = response.error || "Could not remove driver"
                         return;
                     }
-
-                    loadSessions();
                 });
             });
 
@@ -273,9 +266,6 @@ function renderSessions(sessions) {
                             driversError.textContent = response.error || "Could not update driver";
                             return;
                         }
-
-                        loadSessions();
-
                     });
                 });
             });
@@ -297,10 +287,6 @@ function renderSessions(sessions) {
                     errorMessage.textContent = response.error || "Could not remove session";
                     return;
                 }
-
-                loadSessions();
-
-
             })
         })
         sessionsContainer.appendChild(card);
@@ -341,11 +327,7 @@ addSessionBtn.addEventListener("click", () => {
             errorMessage.textContent = response.error || "Could not add session";
             return;
         }
-
-        loadSessions();
-
     });
-
 })
 
 
