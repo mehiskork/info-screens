@@ -336,8 +336,8 @@ function startRace(sessionId) {
 
 /**
  * Change race mode
- * Valid modes: 'safe', 'racing', 'paused', 'finished'
- * If mode is 'finished', the race ends and moves to lastFinishedRace
+ * Valid modes: 'safe', 'hazard', 'danger', 'finish'
+ * If mode is 'finish', the race ends and moves to lastFinishedRace
  */
 function changeRaceMode(mode) {
   // Check if a race is active
@@ -346,14 +346,14 @@ function changeRaceMode(mode) {
   }
   
   // Validate mode
-  const validModes = ['safe', 'racing', 'paused', 'finished']
+  const validModes = ['safe', 'hazard', 'danger', 'finish']
   if (!validModes.includes(mode)) {
-    return { success: false, error: 'Invalid mode. Must be: safe, racing, paused, or finished' }
+    return { success: false, error: 'Invalid mode. Must be: safe, hazard, danger, or finish' }
   }
   
   // If finishing the race, keep session for paddock flow
-  if (mode === 'finished') {
-    state.currentRace.mode = 'finished'
+  if (mode === 'finish') {
+    state.currentRace.mode = 'finish'
     state.lastFinishedRace = JSON.parse(JSON.stringify(state.currentRace))
     
     // Find the session in queue
