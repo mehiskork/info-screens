@@ -16,6 +16,7 @@ const {
   getNextRaceSession,
   startRace,
   changeRaceMode,
+  endSession,
   getCurrentRaceStatus,
   recordLapCrossing,
   getLeaderboard
@@ -170,6 +171,17 @@ function initializeSocketHandlers(io) {
       
       if (result.success) {
         broadcastState(io)
+      }
+      
+      callback(result)
+    })
+    
+    // End race session (after cars return to pit lane)
+    socket.on('session:end', (callback = () => {}) => {
+      const result = endSession()
+      
+      if (result.success) {
+        io.emit('nextRace:changed')
       }
       
       callback(result)
