@@ -143,3 +143,58 @@ body {
     }
 
 }
+
+/* Lock Screen Styles */
+#lock-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--background);
+}
+
+.lock-panel {
+    width: 100%;
+    max-width: 400px;
+    padding: 32px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--card-foreground);
+    
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: center;
+}
+
+.lock-panel h2 {
+    margin: 0;
+    font-size: 32px;
+    letter-spacing: 2px;
+}
+
+.lock-panel input {
+    width: 100%;
+    padding: 12px;
+    font-size: 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--input-background);
+    color: var(--foreground);
+}
+
+.lock-panel button {
+    width: 100%;
+}
+
+.error {
+    color: crimson;
+    font-size: 16px;
+    min-height: 20px;
+    text-align: center;
+}

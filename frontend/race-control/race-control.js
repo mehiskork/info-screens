@@ -2,6 +2,14 @@ const socket = io()
 
 let raceFinished = false
 
+// Lock screen elements
+const lockScreen = document.getElementById("lock-screen")
+const accessKeyInput = document.getElementById("access-key")
+const unlockBtn = document.getElementById("unlock-btn")
+const errorMessage = document.getElementById("error-message")
+
+// Race panel elements
+const racePanel = document.getElementById("race-panel")
 const status = document.getElementById("race-status")
 const startBtn = document.getElementById("start")
 const safeBtn = document.getElementById("safe")
@@ -12,76 +20,80 @@ const endSessionBtn = document.getElementById("end-session")
 
 endSessionBtn.style.display = "none"
 
-function askSafetyKey() {
+// Authentication
+unlockBtn.addEventListener("click", () => {
+    const accessKey = accessKeyInput.value.trim()
 
-    const key = prompt("Enter SAFETY KEY")
+    if (accessKey === "") {
+        errorMessage.textContent = "Enter safety key"
+        return
+    }
 
-    socket.emit("auth:submit", {
-        role: "safety",
-        key: key
+    socket.emit("auth:safety", { accessKey }, (response) => {
+        console.log("auth:safety response:", response)
+
+        if (!response.success) {
+            errorMessage.textContent = response.error || "Invalid access key"
+            return
+        }
+
+        // Authentication successful - unlock interface
+        lockScreen.hidden = true
+        racePanel.hidden = false
     })
+})
 
-}
+// Allow Enter key to submit
+accessKeyInput.addEventListener("keypress", (e) => {
+    if (e.key === "Enter") {
+        unlockBtn.click()
+    }
+})
 
+// START RACE (FIXED)
 startBtn.onclick = () => {
-
-    askSafetyKey()
-
-    socket.emit("race:start")
-
-    socket.emit("race:mode:set", "SAFE")
-
+    socket.emit("race:start", (res) => {
+        if (!res.success) {
+            alert(res.error)
+        }
+    })
 }
 
-safeBtn.onclick = () => setMode("SAFE")
-hazardBtn.onclick = () => setMode("HAZARD")
-dangerBtn.onclick = () => setMode("DANGER")
-finishBtn.onclick = () => setMode("FINISH")
+// MODES (FIXED lowercase)
+safeBtn.onclick = () => setMode("safe")
+hazardBtn.onclick = () => setMode("hazard")
+dangerBtn.onclick = () => setMode("danger")
+finishBtn.onclick = () => setMode("finish")
 
 function setMode(mode) {
-
     if (raceFinished) return
 
-    socket.emit("race:mode:set", mode)
-
-    status.innerText = "Mode: " + mode
-
-    if (mode === "FINISH") {
-        raceFinished = true
-        endSessionBtn.style.display = "inline"
-
-        safeBtn.disabled = true
-        hazardBtn.disabled = true
-        dangerBtn.disabled = true
-    }
-
+    socket.emit("race:changeMode", { mode }, (res) => {
+        if (!res.success) {
+            alert(res.error)
+        }
+    })
 }
 
-function updateStatus(mode) {
-
-    status.innerText = "Mode: " + mode
-
-    if (mode === "SAFE") status.style.color = "lime"
-    if (mode === "HAZARD") status.style.color = "yellow"
-    if (mode === "DANGER") status.style.color = "red"
-    if (mode === "FINISH") status.style.color = "cyan"
-
-}
-
-endSessionBtn.onclick = () => {
-
-    socket.emit("race:endSession")
-
-}
-
+// UI UPDATE FROM SERVER (SOURCE OF TRUTH)
 socket.on("state:update", (state) => {
 
-    if (state.raceMode === "FINISH") {
+    const mode = state.raceMode
 
+    status.innerText = "Mode: " + mode
+
+    if (mode === "safe") status.style.color = "lime"
+    if (mode === "hazard") status.style.color = "yellow"
+    if (mode === "danger") status.style.color = "red"
+    if (mode === "finish") {
+        status.style.color = "white"
         raceFinished = true
         endSessionBtn.style.display = "inline"
 
     }
-
 })
+
+endSessionBtn.onclick = () => {
+    socket.emit("race:changeMode", { mode: "reset" })
+}
 
