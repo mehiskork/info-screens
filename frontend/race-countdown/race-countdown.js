@@ -1,40 +1,33 @@
 const socket = io()
-
 const timer = document.getElementById("timer")
-const fullscreenBtn = document.getElementById("fullscreen")
 
 let endTime = null
 
-fullscreenBtn.onclick = () => {
-    document.documentElement.requestFullscreen()
-}
-
 socket.on("state:update", (state) => {
 
-    if (state.timer.running) {
+    if (state.timer?.running) {
         endTime = state.timer.endsAt
+    } else {
+        endTime = null
+        timer.innerText = "00:00"
     }
-
 })
 
 function updateTimer() {
-
     if (!endTime) return
 
-    const now = Date.now()
+    const remaining = Math.max(0, endTime - Date.now())
 
-    let remaining = Math.max(0, endTime - now)
-
-    let seconds = Math.floor(remaining / 1000)
-
-    let minutes = Math.floor(seconds / 60)
-
-    seconds = seconds % 60
+    const min = Math.floor(remaining / 60000)
+    const sec = Math.floor((remaining % 60000) / 1000)
 
     timer.innerText =
-        String(minutes).padStart(2, "0") + ":" +
-        String(seconds).padStart(2, "0")
+        String(min).padStart(2, "0") + ":" +
+        String(sec).padStart(2, "0")
 
+    if (remaining <= 0) {
+        socket.emit("race:changeMode", { mode: "finish" })
+    }
 }
 
 setInterval(updateTimer, 1000)
