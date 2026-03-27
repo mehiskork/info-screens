@@ -31,7 +31,7 @@ function broadcastState(io) {
 
   if (!result.success) {
     io.emit("state:update", {
-      raceMode: "danger",
+      raceMode: "DANGER",
       timer: { running: false }
     })
     return
@@ -41,9 +41,9 @@ function broadcastState(io) {
   console.log("BROADCAST:", race.mode)
 
   io.emit("state:update", {
-    raceMode: race.mode,
+    raceMode: race.mode.toUpperCase(),
     timer: {
-      running: race.mode !== "finished",
+      running: race.mode !== "finish",
       endsAt: race.startTime + result.race.totalDuration * 1000
     }
   })
@@ -51,7 +51,7 @@ function broadcastState(io) {
   const now = Date.now()
 
   if (race.startTime && now >= race.startTime + result.race.totalDuration * 1000) {
-    changeRaceMode("finished")
+    changeRaceMode("finish")
   }
 }
 
@@ -148,8 +148,33 @@ function initializeSocketHandlers(io) {
     })
     
     // Start a race
-    socket.on('race:start', (data, callback) => {
-      const { sessionId } = data
+    socket.on('race:start', (data, callbackParam) => {
+      // Handle both old format (no data) and new format (with sessionId)
+      let sessionId = null
+      let callback = callbackParam || (() => {})
+      
+      // If data is a function, it's the callback (old format with no sessionId)
+      if (typeof data === 'function') {
+        callback = data
+        // Auto-select first session if no sessionId provided
+        const sessions = getAllSessions()
+        if (sessions.length > 0) {
+          sessionId = sessions[0].id
+        } else {
+          return callback({ success: false, error: 'No sessions available to start' })
+        }
+      } else if (data && data.sessionId) {
+        sessionId = data.sessionId
+      } else {
+        // No sessionId provided, auto-select first
+        const sessions = getAllSessions()
+        if (sessions.length > 0) {
+          sessionId = sessions[0].id
+        } else {
+          return callback({ success: false, error: 'No sessions available to start' })
+        }
+      }
+      
       const result = startRace(sessionId)
       callback(result)
       // Broadcast if race started successfully (next race in queue changes)
@@ -160,14 +185,32 @@ function initializeSocketHandlers(io) {
       }
     })
     
-    // Change race mode
+    // Change race mode (accepts both race:changeMode and race:mode:set for compatibility)
     socket.on('race:changeMode', (data = {}, callback = () => {}) => {
       if (!data.mode) {
         return callback({ success: false, error: 'Mode required' })
       }
       
-      const { mode } = data
+      // Convert mode to lowercase for internal use
+      const mode = data.mode.toLowerCase()
       const result = changeRaceMode(mode)
+      
+      if (result.success) {
+        broadcastState(io)
+      }
+      
+      callback(result)
+    })
+    
+    // Legacy event name support (race:mode:set) - frontend uses this
+    socket.on('race:mode:set', (mode, callback = () => {}) => {
+      if (!mode) {
+        return callback({ success: false, error: 'Mode required' })
+      }
+      
+      // Convert mode to lowercase for internal use
+      const modeLower = mode.toLowerCase()
+      const result = changeRaceMode(modeLower)
       
       if (result.success) {
         broadcastState(io)
@@ -182,6 +225,18 @@ function initializeSocketHandlers(io) {
       
       if (result.success) {
         io.emit('nextRace:changed')
+      }
+      
+      callback(result)
+    })
+    
+    // Legacy event name support (race:endSession) - frontend uses this
+    socket.on('race:endSession', (callback = () => {}) => {
+      const result = endSession()
+      
+      if (result.success) {
+        io.emit('nextRace:changed')
+        broadcastState(io)
       }
       
       callback(result)
