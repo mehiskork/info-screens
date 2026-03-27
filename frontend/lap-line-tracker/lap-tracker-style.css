@@ -1,0 +1,272 @@
+:root {
+    --radius: 10px;
+}
+
+.dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.145 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.985 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --border: oklch(0.269 0 0);
+    --input-background: oklch(0.269 0 0);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+    padding: 16px;
+}
+
+/* Lock Screen Styles */
+#lock-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: var(--background);
+    z-index: 1000;
+}
+
+#lock-screen[hidden] {
+    display: none;
+}
+
+.lock-panel {
+    max-width: 400px;
+    width: 100%;
+    padding: 32px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--card-foreground);
+    text-align: center;
+}
+
+.lock-panel h2 {
+    margin: 0 0 24px 0;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.lock-panel input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--input-background);
+    color: var(--foreground);
+    font-size: 16px;
+}
+
+.lock-panel input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.lock-panel button {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.lock-panel button:hover {
+    opacity: 0.9;
+}
+
+.lock-panel button:active {
+    opacity: 0.8;
+}
+
+.error {
+    color: crimson;
+    font-size: 14px;
+    margin: 12px 0 0 0;
+    min-height: 20px;
+}
+
+/* Lap Tracker Panel */
+#lap-tracker-panel {
+    width: 100%;
+    max-width: 800px;
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--card-foreground);
+}
+
+#lap-tracker-panel h2 {
+    margin: 0 0 8px 0;
+    font-size: 32px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 1px;
+}
+
+.instruction {
+    text-align: center;
+    color: var(--muted-foreground);
+    font-size: 16px;
+    margin: 0 0 24px 0;
+}
+
+/* Car Buttons Grid */
+#car-buttons {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.car-btn {
+    aspect-ratio: 1;
+    min-height: 100px;
+    border: 2px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--card);
+    color: var(--foreground);
+    font-size: 48px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.car-btn:hover {
+    background: var(--muted);
+    border-color: var(--primary);
+}
+
+.car-btn:active {
+    transform: scale(0.95);
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.car-btn.pulse {
+    animation: pulse 0.3s ease-out;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+        background: var(--primary);
+        color: var(--primary-foreground);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Status Message */
+#status-message {
+    min-height: 30px;
+    padding: 12px;
+    border-radius: var(--radius);
+    text-align: center;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+#status-message.success {
+    background: rgba(34, 197, 94, 0.2);
+    color: rgb(34, 197, 94);
+    border: 1px solid rgba(34, 197, 94, 0.5);
+}
+
+#status-message.error {
+    background: rgba(239, 68, 68, 0.2);
+    color: rgb(239, 68, 68);
+    border: 1px solid rgba(239, 68, 68, 0.5);
+}
+
+/* Responsive Design - Portrait */
+@media (max-width: 600px) {
+    #car-buttons {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .car-btn {
+        min-height: 120px;
+        font-size: 56px;
+    }
+
+    #lap-tracker-panel {
+        padding: 16px;
+    }
+
+    #lap-tracker-panel h2 {
+        font-size: 24px;
+    }
+
+    .instruction {
+        font-size: 14px;
+    }
+}
+
+/* Landscape orientation optimization */
+@media (orientation: landscape) and (max-height: 600px) {
+    body {
+        padding: 8px;
+    }
+
+    #lap-tracker-panel {
+        padding: 16px;
+        max-width: 100%;
+    }
+
+    #lap-tracker-panel h2 {
+        font-size: 24px;
+        margin-bottom: 4px;
+    }
+
+    .instruction {
+        font-size: 14px;
+        margin-bottom: 12px;
+    }
+
+    #car-buttons {
+        gap: 12px;
+    }
+
+    .car-btn {
+        min-height: 80px;
+        font-size: 36px;
+    }
+
+    #status-message {
+        font-size: 14px;
+        padding: 8px;
+    }
+}

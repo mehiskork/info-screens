@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lap-line Tracker</title>
+    <link rel="stylesheet" href="/frontend/lap-line-tracker/lap-tracker-style.css">
+</head>
+
+<body class="dark">
+
+    <!-- Lock Screen for Authentication -->
+    <div id="lock-screen">
+        <div class="lock-panel">
+            <h2>Observer Authentication</h2>
+            <input type="password" id="access-key" placeholder="Enter Observer Key" />
+            <button id="unlock-btn">Unlock</button>
+            <p id="error-message" class="error"></p>
+        </div>
+    </div>
+
+    <!-- Lap Tracker Panel (hidden until authenticated) -->
+    <div id="lap-tracker-panel" hidden>
+
+        <h2>Lap-line Tracker</h2>
+        <p class="instruction">Tap car number as it crosses the lap line</p>
+
+        <div id="car-buttons">
+            <button class="car-btn" data-car="1">1</button>
+            <button class="car-btn" data-car="2">2</button>
+            <button class="car-btn" data-car="3">3</button>
+            <button class="car-btn" data-car="4">4</button>
+            <button class="car-btn" data-car="5">5</button>
+            <button class="car-btn" data-car="6">6</button>
+            <button class="car-btn" data-car="7">7</button>
+            <button class="car-btn" data-car="8">8</button>
+        </div>
+
+        <div id="status-message"></div>
+
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/frontend/lap-line-tracker/lap-tracker.js"></script>
+</body>
+
+</html>

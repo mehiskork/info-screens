@@ -13,7 +13,10 @@ const state = {
   },
   
   // For "see last race" requirement
-  lastFinishedRace: null  // copy of finished race data
+  lastFinishedRace: null,  // copy of finished race data
+  
+  // For paddock flow - session finished but not yet ended by Safety Official
+  endedSession: null  // session waiting for drivers to proceed to paddock
 }
 
 // ============ SESSION MANAGEMENT ============
@@ -35,11 +38,31 @@ function addSession() {
 }
 
 /**
+ * Helper: Sort drivers by car number (ascending, numeric)
+ */
+function sortDriversByCarNumber(drivers) {
+  return drivers.sort((a, b) => a.carNumber - b.carNumber)
+}
+
+/**
  * Step 2: Get all sessions
  * Returns a deep copy to prevent external mutations
+ * Filters out the currently active race session
+ * Sorts drivers by car number in each session
  */
 function getAllSessions() {
-  return JSON.parse(JSON.stringify(state.sessions))
+  // Filter out the active race session from the queue
+  const queuedSessions = state.sessions.filter(session => {
+    return session.id !== state.currentRace.sessionId
+  })
+  
+  // Deep copy and sort drivers in each session
+  const sessionsCopy = JSON.parse(JSON.stringify(queuedSessions))
+  sessionsCopy.forEach(session => {
+    sortDriversByCarNumber(session.drivers)
+  })
+  
+  return sessionsCopy
 }
 
 /**
@@ -52,12 +75,28 @@ function getSessionById(sessionId) {
 
 /**
  * Step 4: Add a driver to a session
- * Auto-assigns the lowest available car number (1-8)
+ * Receptionist must specify the car number (1-8)
  */
-function addDriver(sessionId, driverName) {
-  // Validate inputs
+function addDriver(sessionId, driverName, carNumber) {
+  // Validate driver name
   if (!driverName || typeof driverName !== 'string' || driverName.trim() === '') {
     return { success: false, error: 'Driver name is required' }
+  }
+  
+  // Validate car number is provided
+  if (carNumber === undefined || carNumber === null) {
+    return { success: false, error: 'Car number is required' }
+  }
+  
+  // Validate car number is a number
+  const carNum = parseInt(carNumber, 10)
+  if (isNaN(carNum)) {
+    return { success: false, error: 'Car number must be a valid number' }
+  }
+  
+  // Validate car number is in valid range (1-8)
+  if (carNum < 1 || carNum > 8) {
+    return { success: false, error: 'Car number must be between 1 and 8' }
   }
   
   // Find the session
@@ -72,23 +111,19 @@ function addDriver(sessionId, driverName) {
     return { success: false, error: 'Driver name must be unique in this session' }
   }
   
+  // Check if car number is already taken in this session
+  const carTaken = session.drivers.some(d => d.carNumber === carNum)
+  if (carTaken) {
+    return { success: false, error: `Car ${carNum} is already assigned in this session` }
+  }
+  
   // Check max drivers (8 cars available)
   if (session.drivers.length >= 8) {
     return { success: false, error: 'Session is full (max 8 drivers)' }
   }
   
-  // Find lowest available car number (1-8)
-  const usedCars = session.drivers.map(d => d.carNumber)
-  let carNumber = null
-  for (let i = 1; i <= 8; i++) {
-    if (!usedCars.includes(i)) {
-      carNumber = i
-      break
-    }
-  }
-  
-  // Add the driver
-  const newDriver = { name: driverName, carNumber }
+  // Add the driver with the specified car number
+  const newDriver = { name: driverName, carNumber: carNum }
   session.drivers.push(newDriver)
   
   return { success: true, driver: { ...newDriver } }
@@ -99,10 +134,45 @@ function addDriver(sessionId, driverName) {
  * Returns null if no sessions exist
  */
 function getNextRaceSession() {
-  if (state.sessions.length === 0) {
+  // If there's an ended session waiting for paddock, show it with paddock state
+  if (state.endedSession !== null) {
+    const session = JSON.parse(JSON.stringify(state.endedSession))
+    sortDriversByCarNumber(session.drivers)
+    return { success: true, state: 'paddock', data: session }
+  }
+  
+  // If no race is active, return the first queued session
+  if (state.currentRace.sessionId === null) {
+    if (state.sessions.length === 0) {
+      return { success: false, error: 'No queued sessions' }
+    }
+    const session = JSON.parse(JSON.stringify(state.sessions[0]))
+    sortDriversByCarNumber(session.drivers)
+    return { success: true, state: 'upcoming', data: session }
+  }
+  
+  // If a race is active, find the next queued session after it
+  const activeIndex = state.sessions.findIndex(s => s.id === state.currentRace.sessionId)
+  
+  // If active session not found in queue (shouldn't happen), return first session
+  if (activeIndex === -1) {
+    if (state.sessions.length === 0) {
+      return { success: false, error: 'No queued sessions' }
+    }
+    const session = JSON.parse(JSON.stringify(state.sessions[0]))
+    sortDriversByCarNumber(session.drivers)
+    return { success: true, state: 'upcoming', data: session }
+  }
+  
+  // Return the next session after the active one
+  const nextIndex = activeIndex + 1
+  if (nextIndex >= state.sessions.length) {
     return { success: false, error: 'No queued sessions' }
   }
-  return { success: true, data: JSON.parse(JSON.stringify(state.sessions[0])) }
+  
+  const session = JSON.parse(JSON.stringify(state.sessions[nextIndex]))
+  sortDriversByCarNumber(session.drivers)
+  return { success: true, state: 'upcoming', data: session }
 }
 
 /**
@@ -187,6 +257,34 @@ async function authenticateReceptionist(accessKey) {
   }
 }
 
+/**
+ * Authenticate safety official access key
+ * Includes 500ms delay on wrong key (per requirements)
+ */
+async function authenticateSafety(accessKey) {
+  if (accessKey === KEYS.safety) {
+    return { success: true, role: 'safety' }
+  } else {
+    // 500ms delay on wrong key to prevent brute force
+    await new Promise(resolve => setTimeout(resolve, 500))
+    return { success: false, error: 'Invalid access key' }
+  }
+}
+
+/**
+ * Authenticate lap-line observer access key
+ * Includes 500ms delay on wrong key (per requirements)
+ */
+async function authenticateObserver(accessKey) {
+  if (accessKey === KEYS.observer) {
+    return { success: true, role: 'observer' }
+  } else {
+    // 500ms delay on wrong key to prevent brute force
+    await new Promise(resolve => setTimeout(resolve, 500))
+    return { success: false, error: 'Invalid access key' }
+  }
+}
+
 // ============ RACE CONTROL ============
 
 /**
@@ -209,6 +307,9 @@ function startRace(sessionId) {
   if (state.currentRace.sessionId !== null) {
     return { success: false, error: 'A race is already in progress' }
   }
+  
+  // Clear ended session when starting new race (paddock flow complete)
+  state.endedSession = null
   
   // Initialize lap tracking for each car
   const laps = {}
@@ -250,33 +351,53 @@ function changeRaceMode(mode) {
     return { success: false, error: 'Invalid mode. Must be: safe, racing, paused, or finished' }
   }
   
-  // If finishing the race, move it to lastFinishedRace and reset currentRace
+  // If finishing the race, keep session for paddock flow
   if (mode === 'finished') {
     state.currentRace.mode = 'finished'
     state.lastFinishedRace = JSON.parse(JSON.stringify(state.currentRace))
     
-    // Remove the finished session from the queue
+    // Find the session in queue
     const sessionId = state.currentRace.sessionId
     const index = state.sessions.findIndex(s => s.id === sessionId)
+    
+    // Move session to endedSession (for paddock display)
     if (index !== -1) {
+      state.endedSession = JSON.parse(JSON.stringify(state.sessions[index]))
       state.sessions.splice(index, 1)
     }
     
-    // Reset current race
+    // Reset current race to allow next race to start
     state.currentRace = {
       sessionId: null,
-      mode: null,
+      mode: 'danger',
       startTime: null,
       laps: {}
     }
     
-    return { success: true, message: 'Race finished and session removed from queue' }
+    return { success: true, message: 'Race finished - drivers should return to pit lane' }
   }
   
   // Update mode for non-finished states
   state.currentRace.mode = mode
   
   return { success: true, mode: state.currentRace.mode }
+}
+
+/**
+ * End the race session after cars have returned to pit lane
+ * Called by Safety Official to clear the paddock state
+ * Removes the ended session and broadcasts next race update
+ */
+function endSession() {
+  // Check if there's an ended session waiting
+  if (state.endedSession === null) {
+    return { success: false, error: 'No ended session to clear' }
+  }
+  
+  // Clear the ended session
+  state.endedSession = null
+  
+  return { success: true, message: 'Session ended - next session ready' }
 }
 
 /**
@@ -399,8 +520,11 @@ module.exports = {
   removeDriver,
   updateDriver,
   authenticateReceptionist,
+  authenticateSafety,
+  authenticateObserver,
   startRace,
   changeRaceMode,
+  endSession,
   getCurrentRaceStatus,
   recordLapCrossing,
   getLeaderboard

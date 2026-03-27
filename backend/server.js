@@ -39,6 +39,10 @@ app.get('/race-flags', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/race-flags/race-flags-index.html'))
 })
 
+app.get('/lap-line-tracker', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/lap-line-tracker/lap-tracker-index.html'))
+})
+
 // Initialize Socket.IO event handlers
 initializeSocketHandlers(io)
 
