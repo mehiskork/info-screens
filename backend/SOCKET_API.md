@@ -78,7 +78,7 @@ socket.on('state:update', (data) => {
   console.log('Race mode:', data.raceMode)
   console.log('Timer:', data.timer)
   // data = {
-  //   raceMode: "racing",  // "danger", "safe", "racing", "paused", or "finished"
+  //   raceMode: "SAFE",  // "DANGER", "SAFE", "HAZARD", or "FINISH" (uppercase)
   //   timer: {
   //     running: true,
   //     endsAt: 1234567890  // Unix timestamp in milliseconds
@@ -88,11 +88,10 @@ socket.on('state:update', (data) => {
 ```
 
 **Race Modes:**
-- `'danger'` - No active race, danger condition (red flag)
-- `'safe'` - Safety car on track (yellow flag)
-- `'racing'` - Normal racing (green flag)
-- `'paused'` - Race paused
-- `'finished'` - Race ended
+- `'DANGER'` - No active race, danger condition (red flag)
+- `'SAFE'` - Safety car on track (green flag)
+- `'HAZARD'` - Yellow flag, drive slowly
+- `'FINISH'` - Race ended (checkered flag)
 
 **Timer Object:**
 - When race is active: `{ running: true, endsAt: <timestamp> }`
@@ -355,10 +354,10 @@ socket.emit('race:start', { sessionId: 1 }, (response) => {
 **Response:** `{ success: boolean, mode?: string, message?: string, error?: string }`
 
 ```javascript
-socket.emit('race:changeMode', { mode: 'racing' }, (response) => {
+socket.emit('race:changeMode', { mode: 'hazard' }, (response) => {
   if (response.success) {
     console.log('Mode changed to:', response.mode)
-    // or response.message for 'finished' mode
+    // or response.message for 'finish' mode
   } else {
     console.error(response.error)
     // "No active race" or "Invalid mode..."
@@ -367,15 +366,16 @@ socket.emit('race:changeMode', { mode: 'racing' }, (response) => {
 ```
 
 **Valid Modes:**
-- `'safe'` - Safety car on track
-- `'racing'` - Normal racing
-- `'paused'` - Race paused
-- `'finished'` - Ends race, moves to paddock state (waiting for cars to return)
+- `'safe'` - Safety car on track (green flag)
+- `'hazard'` - Yellow flag, drive slowly
+- `'danger'` - Red flag, stop driving
+- `'finish'` - Ends race, moves to paddock state (waiting for cars to return)
 
 **Notes:**
-- Setting mode to `'finished'` automatically ends the race and moves session to paddock state
+- Setting mode to `'finish'` automatically ends the race and moves session to paddock state
 - After finishing, session remains visible on next-race display until cleared via `session:end`
 - After paddock is cleared, you can start a new race
+- Mode names are lowercase when sending to backend, but broadcast as uppercase in state:update events
 
 ---
 
@@ -405,7 +405,7 @@ socket.emit('session:end', (response) => {
 - Call this after drivers have returned their cars to the pit area
 
 **Usage in Race Control:**
-1. Finish race (set mode to 'finished')
+1. Finish race (set mode to 'finish')
 2. Wait for all drivers to return cars to paddock
 3. Call `session:end` to clear session and proceed to next race
 
