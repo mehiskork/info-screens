@@ -62,6 +62,48 @@ async function authenticateRole(role, accessKey) {
   return { success: false, error: 'Invalid role' }
 }
 
+function emitLeaderboardUpdated(io) {
+  const leaderboardResult = getLeaderboard()
+  if (leaderboardResult.success) {
+    io.emit('leaderboard:updated', {
+      leaderboard: leaderboardResult.leaderboard
+    })
+  }
+}
+
+function emitRaceStatus(io) {
+  const result = getCurrentRaceStatus()
+
+  if (!result.success) {
+    io.emit('race:status', {
+      active: false,
+      mode: 'danger',
+      timer: { running: false }
+    })
+    return
+  }
+
+  const race = result.race
+  io.emit('race:status', {
+    active: true,
+    sessionId: race.sessionId,
+    mode: race.mode,
+    secondsRemaining: race.secondsRemaining,
+    totalDuration: race.totalDuration,
+    startTime: race.startTime
+  })
+}
+
+function emitRaceSnapshot(socket) {
+  const raceStatus = getCurrentRaceStatus()
+  const leaderboard = getLeaderboard()
+
+  socket.emit('race:statusSnapshot', {
+    raceStatus,
+    leaderboard
+  })
+}
+
 /**
  * Broadcast current race state to all connected clients
  * Emits state:update event with race mode and timer information
@@ -74,25 +116,36 @@ function broadcastState(io) {
       raceMode: "DANGER",
       timer: { running: false }
     })
+    emitRaceStatus(io)
     return
   }
   
   const race = result.race
   console.log("BROADCAST:", race.mode)
 
-  io.emit("state:update", {
-    raceMode: race.mode.toUpperCase(),
-    timer: {
-      running: race.mode !== "finish",
-      endsAt: race.startTime + result.race.totalDuration * 1000
-    }
-  })
-
   const now = Date.now()
 
-  if (race.startTime && now >= race.startTime + result.race.totalDuration * 1000) {
-    changeRaceMode("finish")
+  if (race.mode !== 'finish' && race.startTime && now >= race.startTime + result.race.totalDuration * 1000) {
+    const finishResult = changeRaceMode('finish')
+    if (finishResult.success) {
+      io.emit('race:modeChanged', { mode: 'finish' })
+      io.emit('race:finished', { sessionId: race.sessionId, reason: 'timer-expired' })
+    }
   }
+
+  const updatedStatus = getCurrentRaceStatus()
+  if (updatedStatus.success) {
+    io.emit("state:update", {
+      raceMode: updatedStatus.race.mode.toUpperCase(),
+      timer: {
+        running: updatedStatus.race.mode !== "finish",
+        endsAt: updatedStatus.race.startTime + updatedStatus.race.totalDuration * 1000
+      }
+    })
+  }
+
+  emitRaceStatus(io)
+  emitLeaderboardUpdated(io)
 }
 
 /**
@@ -125,6 +178,7 @@ function initializeSocketHandlers(io) {
 
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id, 'role:', socket.data.role)
+    emitRaceSnapshot(socket)
     
     // Get all sessions
     socket.on('getSessions', (callback) => {
@@ -285,6 +339,7 @@ function initializeSocketHandlers(io) {
       // Broadcast if race started successfully (next race in queue changes)
       if (result.success) {
         io.emit('race:started', { sessionId })
+        io.emit('race:modeChanged', { mode: 'safe' })
         io.emit('nextRace:changed')
         broadcastState(io)
       }
@@ -305,6 +360,14 @@ function initializeSocketHandlers(io) {
       const result = changeRaceMode(mode)
       
       if (result.success) {
+        io.emit('race:modeChanged', { mode })
+        if (mode === 'finish') {
+          const raceStatus = getCurrentRaceStatus()
+          io.emit('race:finished', {
+            sessionId: raceStatus.success ? raceStatus.race.sessionId : null,
+            reason: 'manual'
+          })
+        }
         broadcastState(io)
       }
       
@@ -326,6 +389,14 @@ function initializeSocketHandlers(io) {
       const result = changeRaceMode(modeLower)
       
       if (result.success) {
+        io.emit('race:modeChanged', { mode: modeLower })
+        if (modeLower === 'finish') {
+          const raceStatus = getCurrentRaceStatus()
+          io.emit('race:finished', {
+            sessionId: raceStatus.success ? raceStatus.race.sessionId : null,
+            reason: 'manual'
+          })
+        }
         broadcastState(io)
       }
       
@@ -341,7 +412,9 @@ function initializeSocketHandlers(io) {
       const result = endSession()
       
       if (result.success) {
+        io.emit('race:sessionEnded')
         io.emit('nextRace:changed')
+        broadcastState(io)
       }
       
       callback(result)
@@ -356,6 +429,7 @@ function initializeSocketHandlers(io) {
       const result = endSession()
       
       if (result.success) {
+        io.emit('race:sessionEnded')
         io.emit('nextRace:changed')
         broadcastState(io)
       }
@@ -378,6 +452,17 @@ function initializeSocketHandlers(io) {
       const { carNumber, timestamp } = data
       const result = recordLapCrossing(carNumber, timestamp)
       callback(result)
+
+      if (result.success) {
+        io.emit('lap:recorded', {
+          carNumber,
+          timestamp: timestamp || Date.now(),
+          lap: result.lap,
+          lapTime: result.lapTime || null,
+          bestTime: result.bestTime || null
+        })
+        emitLeaderboardUpdated(io)
+      }
     })
     
     // Get leaderboard
