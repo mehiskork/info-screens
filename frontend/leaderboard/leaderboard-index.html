@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard</title>
+    <link rel="stylesheet" href="leaderboard-style.css" />
+</head>
+
+<body class="dark">
+    <main class="screen">
+        <div class="topbar">
+            <h1>Race Leaderboard</h1>
+            <button id="fullscreen-btn" class="button1" type="button">Fullscreen</button>
+        </div>
+
+        <div class="meta">
+            <div class="meta-box" id="flag-status">Flag: Waiting</div>
+            <div class="meta-box" id="timer-display">Timer: --:--</div>
+        </div>
+
+        <section class="empty-state" id="empty-state">
+            No active race at the moment
+        </section>
+
+        <section class="leaderboard-card" id="leaderboard-card" hidden>
+            <h2 id="session-title">Live Standings</h2>
+            <table class="leaderboard-table">
+                <thead>
+                    <tr>
+                        <th>Pos</th>
+                        <th>Car</th>
+                        <th>Driver</th>
+                        <th>Best Lap</th>
+                        <th>Laps</th>
+                    </tr>
+                </thead>
+                <tbody id="leaderboard-data">
+                </tbody>
+            </table>
+        </section>
+
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="leaderboard.js"></script>
+</body>
+
+</html>

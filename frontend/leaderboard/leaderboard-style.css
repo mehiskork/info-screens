@@ -1,0 +1,134 @@
+/* 1. Üldised muutujad ja baas (Tiimi standard) */
+:root {
+    --radius: 10px;
+}
+
+.dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.145 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --border: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, sans-serif;
+}
+
+.screen {
+    width: min(1100px, 92vw);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+}
+
+/* 2. Topbar ja Meta-boxid */
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.meta {
+    display: flex;
+    gap: 16px;
+    width: 100%;
+}
+
+.meta-box {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* 3. LIPU STAATUSED (Kopeeritud Race Controlist) */
+.safe {
+    background-color: green !important;
+    color: white;
+}
+
+.hazard {
+    background-color: orange !important;
+    color: white;
+}
+
+.danger {
+    background-color: crimson !important;
+    color: white;
+}
+
+.finish {
+    color: red !important;
+    background: repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 20px 20px !important;
+    text-shadow: 1px 1px 2px black;
+    /* Et tekst oleks ruudustikul loetav */
+}
+
+/* 4. Tabel ja Empty State */
+.leaderboard-card,
+.empty-state {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+}
+
+.empty-state {
+    text-align: center;
+    font-size: 1.5rem;
+    color: var(--muted-foreground);
+    padding: 48px 24px;
+}
+
+.leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.leaderboard-table th {
+    text-align: left;
+    color: var(--muted-foreground);
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    font-size: 0.8rem;
+}
+
+.leaderboard-table td {
+    padding: 16px 12px;
+    border-bottom: 1px solid var(--border);
+    font-size: 1.2rem;
+}
+
+/* 5. Fullscreen nupp */
+.button1 {
+    background-color: #111827;
+    border: 1px solid transparent;
+    border-radius: .75rem;
+    color: white;
+    font-weight: 600;
+    padding: .75rem 1.2rem;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.button1:hover {
+    background-color: #374151;
+}
+
+[hidden] {
+    display: none !important;
+}
