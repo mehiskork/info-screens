@@ -19,6 +19,15 @@ const state = {
   endedSession: null  // session waiting for drivers to proceed to paddock
 }
 
+function resetCurrentRace() {
+  state.currentRace = {
+    sessionId: null,
+    mode: 'danger',
+    startTime: null,
+    laps: {}
+  }
+}
+
 // ============ SESSION MANAGEMENT ============
 
 /**
@@ -337,7 +346,7 @@ function startRace(sessionId) {
 /**
  * Change race mode
  * Valid modes: 'safe', 'hazard', 'danger', 'finish'
- * If mode is 'finish', the race ends and moves to lastFinishedRace
+ * If mode is 'finish', race remains active until endSession()
  */
 function changeRaceMode(mode) {
   // Check if a race is active
@@ -350,31 +359,22 @@ function changeRaceMode(mode) {
   if (!validModes.includes(mode)) {
     return { success: false, error: 'Invalid mode. Must be: safe, hazard, danger, or finish' }
   }
+
+  // Once race is in finish mode, mode can no longer transition.
+  if (state.currentRace.mode === 'finish' && mode !== 'finish') {
+    return { success: false, error: 'Race is already in finish mode and cannot change mode' }
+  }
+
+  if (state.currentRace.mode === 'finish' && mode === 'finish') {
+    return { success: true, mode: state.currentRace.mode, message: 'Race is already in finish mode' }
+  }
   
-  // If finishing the race, keep session for paddock flow
+  // Enter finish mode. Session remains active until endSession() is called.
   if (mode === 'finish') {
     state.currentRace.mode = 'finish'
     state.lastFinishedRace = JSON.parse(JSON.stringify(state.currentRace))
-    
-    // Find the session in queue
-    const sessionId = state.currentRace.sessionId
-    const index = state.sessions.findIndex(s => s.id === sessionId)
-    
-    // Move session to endedSession (for paddock display)
-    if (index !== -1) {
-      state.endedSession = JSON.parse(JSON.stringify(state.sessions[index]))
-      state.sessions.splice(index, 1)
-    }
-    
-    // Reset current race to allow next race to start
-    state.currentRace = {
-      sessionId: null,
-      mode: 'danger',
-      startTime: null,
-      laps: {}
-    }
-    
-    return { success: true, message: 'Race finished - drivers should return to pit lane' }
+
+    return { success: true, mode: state.currentRace.mode, message: 'Race finished - wait for session end confirmation' }
   }
   
   // Update mode for non-finished states
@@ -385,18 +385,36 @@ function changeRaceMode(mode) {
 
 /**
  * End the race session after cars have returned to pit lane
- * Called by Safety Official to clear the paddock state
- * Removes the ended session and broadcasts next race update
+ * Called by Safety Official to finalize a race in finish mode.
  */
 function endSession() {
-  // Check if there's an ended session waiting
-  if (state.endedSession === null) {
-    return { success: false, error: 'No ended session to clear' }
+  // Race must still be active.
+  if (state.currentRace.sessionId === null) {
+    return { success: false, error: 'No active race to end' }
   }
-  
-  // Clear the ended session
-  state.endedSession = null
-  
+
+  // Session can only be ended from finish mode.
+  if (state.currentRace.mode !== 'finish') {
+    return { success: false, error: 'Race must be in finish mode before ending session' }
+  }
+
+  const sessionId = state.currentRace.sessionId
+  const index = state.sessions.findIndex(s => s.id === sessionId)
+
+  if (index !== -1) {
+    state.endedSession = JSON.parse(JSON.stringify(state.sessions[index]))
+    state.sessions.splice(index, 1)
+  } else {
+    // Fallback to current race snapshot if queued session was already removed.
+    state.endedSession = {
+      id: sessionId,
+      drivers: JSON.parse(JSON.stringify(state.currentRace.drivers || []))
+    }
+  }
+
+  state.lastFinishedRace = JSON.parse(JSON.stringify(state.currentRace))
+  resetCurrentRace()
+
   return { success: true, message: 'Session ended - next session ready' }
 }
 
