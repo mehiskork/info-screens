@@ -14,8 +14,10 @@
     <div id="lock-screen">
         <div class="lock-panel">
             <h2>Observer Authentication</h2>
-            <input type="password" id="access-key" placeholder="Enter Observer Key" />
-            <button id="unlock-btn">Unlock</button>
+            <form id="auth-form">
+                <input type="password" id="access-key" placeholder="Enter Observer Key" autocomplete="off" />
+                <button id="unlock-btn" type="submit">Unlock</button>
+            </form>
             <p id="error-message" class="error"></p>
         </div>
     </div>
@@ -25,19 +27,12 @@
 
         <h2>Lap-line Tracker</h2>
         <p class="instruction">Tap car number as it crosses the lap line</p>
+        <div id="tracker-state-message" class="tracker-state"></div>
 
         <div id="car-buttons">
-            <button class="car-btn" data-car="1">1</button>
-            <button class="car-btn" data-car="2">2</button>
-            <button class="car-btn" data-car="3">3</button>
-            <button class="car-btn" data-car="4">4</button>
-            <button class="car-btn" data-car="5">5</button>
-            <button class="car-btn" data-car="6">6</button>
-            <button class="car-btn" data-car="7">7</button>
-            <button class="car-btn" data-car="8">8</button>
         </div>
 
-        <div id="status-message"></div>
+        <div id="lap-feedback"></div>
 
     </div>
 

@@ -18,6 +18,9 @@ app.use(express.static('public'))
 // Serve frontend files from parent directory
 app.use('/frontend', express.static('../frontend'))
 
+// Serve leaderboard assets from a backend-owned first-level route
+app.use('/leader-board', express.static(path.join(__dirname, '../frontend/leaderboard'), { index: false }))
+
 // Routes for frontend interfaces
 app.get('/front-desk', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/front-desk/index.html'))
@@ -41,6 +44,10 @@ app.get('/race-flags', (req, res) => {
 
 app.get('/lap-line-tracker', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/lap-line-tracker/lap-tracker-index.html'))
+})
+
+app.get(['/leader-board', '/leader-board/'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/leaderboard/leaderboard-index.html'))
 })
 
 // Initialize Socket.IO event handlers
