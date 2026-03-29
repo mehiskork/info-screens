@@ -1,18 +1,106 @@
 // Test script for RT38: Queue accuracy and driver sorting
 const io = require('socket.io-client')
 
-const socket = io('http://localhost:3000')
+const BASE_URL = process.env.SOCKET_URL || 'http://localhost:3000'
+const receptionistKey = process.env.RECEPTIONIST_KEY || 'receptionist123'
+const safetyKey = process.env.SAFETY_KEY || 'safety123'
+
+const socket = io(BASE_URL, {
+  auth: {
+    role: 'receptionist',
+    accessKey: receptionistKey
+  }
+})
+
+const safetySocket = io(BASE_URL, {
+  auth: {
+    role: 'safety',
+    accessKey: safetyKey
+  }
+})
 
 let session1Id = null
 let session2Id = null
+let receptionistConnected = false
+let safetyConnected = false
+
+function prepareCleanState() {
+  console.log('0. Preparing clean state...')
+
+  socket.emit('getRaceStatus', (raceStatus) => {
+    if (raceStatus.success) {
+      safetySocket.emit('race:changeMode', { mode: 'finish' }, () => {
+        safetySocket.emit('session:end', () => {
+          clearQueuedSessions()
+        })
+      })
+      return
+    }
+
+    clearQueuedSessions()
+  })
+}
+
+function clearQueuedSessions() {
+  socket.emit('getSessions', (response) => {
+    if (!response.success) {
+      console.error('  ✗ Could not fetch sessions for cleanup:', response)
+      process.exit(1)
+    }
+
+    const queuedIds = response.sessions.map(s => s.id)
+
+    if (queuedIds.length === 0) {
+      console.log('  ✓ No queued sessions to clean\n')
+      runTests()
+      return
+    }
+
+    let remaining = queuedIds.length
+    queuedIds.forEach((sessionId) => {
+      socket.emit('session:remove', { sessionId }, (removeResult) => {
+        if (!removeResult.success) {
+          console.error(`  ✗ Failed to remove session ${sessionId}:`, removeResult)
+          process.exit(1)
+        }
+
+        remaining--
+        if (remaining === 0) {
+          console.log(`  ✓ Cleared ${queuedIds.length} queued sessions\n`)
+          runTests()
+        }
+      })
+    })
+  })
+}
+
+function tryStartTests() {
+  if (!receptionistConnected || !safetyConnected) {
+    return
+  }
+
+  prepareCleanState()
+}
 
 socket.on('connect', () => {
-  console.log('✓ Connected to server\n')
-  runTests()
+  receptionistConnected = true
+  console.log('✓ Connected as receptionist\n')
+  tryStartTests()
+})
+
+safetySocket.on('connect', () => {
+  safetyConnected = true
+  console.log('✓ Connected as safety\n')
+  tryStartTests()
 })
 
 socket.on('connect_error', (error) => {
-  console.error('✗ Connection failed:', error.message)
+  console.error('✗ Receptionist connection failed:', error.message)
+  process.exit(1)
+})
+
+safetySocket.on('connect_error', (error) => {
+  console.error('✗ Safety connection failed:', error.message)
   process.exit(1)
 })
 
@@ -110,7 +198,7 @@ function verifyDriverSortingBeforeRace() {
 
 function startRaceSession1() {
   console.log('5. Starting race for Session 1...')
-  socket.emit('race:start', { sessionId: session1Id }, (response) => {
+  safetySocket.emit('race:start', { sessionId: session1Id }, (response) => {
     if (response.success) {
       console.log(`  ✓ Race started for Session ${session1Id}\n`)
       
@@ -231,5 +319,6 @@ function finalVerification() {
   console.log('✓ Frontend will receive correct queue and driver order\n')
   
   socket.disconnect()
+  safetySocket.disconnect()
   process.exit(0)
 }

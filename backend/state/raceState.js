@@ -444,6 +444,51 @@ function getCurrentRaceStatus() {
 }
 
 /**
+ * Get last finished race snapshot.
+ */
+function getLastFinishedRace() {
+  if (state.lastFinishedRace === null) {
+    return { success: false, error: 'No finished race available' }
+  }
+
+  return {
+    success: true,
+    race: JSON.parse(JSON.stringify(state.lastFinishedRace))
+  }
+}
+
+function buildLeaderboardFromRace(race) {
+  if (!race || !race.drivers || !race.laps) {
+    return null
+  }
+
+  const leaderboard = race.drivers.map(driver => {
+    const lapData = race.laps[driver.carNumber] || {
+      bestTime: null,
+      currentLap: 0,
+      lapTimes: []
+    }
+
+    return {
+      name: driver.name,
+      carNumber: driver.carNumber,
+      bestTime: lapData.bestTime,
+      currentLap: lapData.currentLap,
+      lapTimes: lapData.lapTimes.length
+    }
+  })
+
+  leaderboard.sort((a, b) => {
+    if (a.bestTime === null && b.bestTime === null) return 0
+    if (a.bestTime === null) return 1
+    if (b.bestTime === null) return -1
+    return a.bestTime - b.bestTime
+  })
+
+  return leaderboard
+}
+
+/**
  * Record a lap crossing for a car
  * Calculates lap time if this is not the first crossing
  */
@@ -497,34 +542,24 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
  * Returns drivers sorted by fastest lap (fastest first)
  */
 function getLeaderboard() {
-  // Check if a race is active
-  if (state.currentRace.sessionId === null) {
-    return { success: false, error: 'No active race' }
+  const hasActiveRace = state.currentRace.sessionId !== null
+  const sourceRace = hasActiveRace ? state.currentRace : state.lastFinishedRace
+
+  if (!sourceRace) {
+    return { success: false, error: 'No active or finished race available' }
   }
-  
-  // Build leaderboard with driver and lap data
-  const leaderboard = state.currentRace.drivers.map(driver => {
-    const lapData = state.currentRace.laps[driver.carNumber]
-    return {
-      name: driver.name,
-      carNumber: driver.carNumber,
-      bestTime: lapData.bestTime,
-      currentLap: lapData.currentLap,
-      lapTimes: lapData.lapTimes.length
-    }
-  })
-  
-  // Sort by best time (fastest first, drivers with no time go last)
-  leaderboard.sort((a, b) => {
-    if (a.bestTime === null && b.bestTime === null) return 0
-    if (a.bestTime === null) return 1
-    if (b.bestTime === null) return -1
-    return a.bestTime - b.bestTime
-  })
+
+  const leaderboard = buildLeaderboardFromRace(sourceRace)
+  if (!leaderboard) {
+    return { success: false, error: 'Race data is incomplete' }
+  }
   
   return {
     success: true,
-    leaderboard: leaderboard
+    source: hasActiveRace ? 'active' : 'lastFinished',
+    sessionId: sourceRace.sessionId,
+    raceMode: sourceRace.mode,
+    leaderboard
   }
 }
 
@@ -544,6 +579,7 @@ module.exports = {
   changeRaceMode,
   endSession,
   getCurrentRaceStatus,
+  getLastFinishedRace,
   recordLapCrossing,
   getLeaderboard
 }
