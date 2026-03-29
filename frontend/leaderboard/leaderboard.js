@@ -1,55 +1,54 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Ühendus serveriga 
     const socket = io();
 
-    // 2. Viited HTML elementidele
-    const leaderboardTable = document.getElementById('leaderboard-data');
     const emptyState = document.getElementById('empty-state');
     const leaderboardCard = document.getElementById('leaderboard-card');
     const flagStatus = document.getElementById('flag-status');
     const timerDisplay = document.getElementById('timer-display');
     const fullscreenBtn = document.getElementById('fullscreen-btn');
+    const mainScreen = document.querySelector('.screen');
 
-    //  FULLSCREEN LOOGIKA 
-    if (fullscreenBtn) {
+    // FULLSCREEN 
+    if (fullscreenBtn && mainScreen) {
         fullscreenBtn.addEventListener('click', () => {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
+                mainScreen.requestFullscreen().catch(err => {
                     console.error("Fullscreen viga:", err);
                 });
-                fullscreenBtn.innerText = "Exit Fullscreen";
             } else {
                 document.exitFullscreen();
-                fullscreenBtn.innerText = "Fullscreen";
             }
+        });
+        document.addEventListener('fullscreenchange', () => {
+            fullscreenBtn.innerText = document.fullscreenElement ? "Exit Fullscreen" : "Fullscreen";
         });
     }
 
-    //  ANDMETE UUENDAMISE FUNKTSIOONID 
-
     function updateAll() {
-        //  värske edetabel
+        // 1. edetabeli küsimine 
         socket.emit('getLeaderboard', (response) => {
-            if (response.success && response.leaderboard) {
+            if (response.success && response.leaderboard && response.leaderboard.length > 0) {
                 renderLeaderboard(response.leaderboard);
                 emptyState.hidden = true;
                 leaderboardCard.hidden = false;
             } else {
-                // Kui ralli pole aktiivne
                 emptyState.hidden = false;
                 leaderboardCard.hidden = true;
             }
         });
 
-        // ralli staatus (aeg ja lipu värv)
+        // 2. ralli staatus
         socket.emit('getRaceStatus', (response) => {
             if (response.success && response.race) {
                 const race = response.race;
                 timerDisplay.innerText = `Timer: ${race.secondsRemaining}s`;
-                flagStatus.innerText = `Flag: ${race.mode.toUpperCase()}`;
 
-                // lipu kasti värvid vastavalt režiimile (CSS klassid: safe, racing, paused)
-                flagStatus.className = 'meta-box ' + race.mode;
+                // Lipu tekst (SAFE, RACING, PAUSED)
+                const mode = race.mode || 'waiting';
+                flagStatus.innerText = `Flag: ${mode.toUpperCase()}`;
+
+                // muudab kasti värvid
+                flagStatus.className = 'meta-box ' + mode;
             } else {
                 timerDisplay.innerText = "Timer: --:--";
                 flagStatus.innerText = "Flag: Waiting";
@@ -58,14 +57,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // andmete uuendamine (1 sekund)
     setInterval(updateAll, 1000);
-
-    // Esimene laadimine kohe
     updateAll();
 });
 
-// Funktsioon andmete tabelisse joonistamiseks
 function renderLeaderboard(data) {
     const tbody = document.getElementById('leaderboard-data');
     if (!tbody) return;
@@ -74,7 +69,7 @@ function renderLeaderboard(data) {
     data.forEach((driver, index) => {
         const row = document.createElement('tr');
 
-        // millisekundid sekunditeks 
+        // millisekundid sekunditeks
         const bestTimeStr = driver.bestTime
             ? (driver.bestTime / 1000).toFixed(3) + 's'
             : '--:--';
