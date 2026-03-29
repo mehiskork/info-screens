@@ -1,111 +1,195 @@
-const socket = io()
+let socket = null
+let canTrackLaps = false
 
-// Lock screen elements
 const lockScreen = document.getElementById("lock-screen")
+const authForm = document.getElementById("auth-form")
 const accessKeyInput = document.getElementById("access-key")
 const unlockBtn = document.getElementById("unlock-btn")
 const errorMessage = document.getElementById("error-message")
 
-// Lap tracker panel elements
 const lapTrackerPanel = document.getElementById("lap-tracker-panel")
-const carButtons = document.querySelectorAll(".car-btn")
-const statusMessage = document.getElementById("status-message")
+const carButtonsContainer = document.getElementById("car-buttons")
+const trackerStateMessage = document.getElementById("tracker-state-message")
+const lapFeedback = document.getElementById("lap-feedback")
 
-// Wait for socket connection before enabling auth
-let socketConnected = false
+function formatTime(ms) {
+    if (ms === null || ms === undefined) return "—"
+    return `${(ms / 1000).toFixed(2)}s`
+}
 
-socket.on("connect", () => {
-    console.log("Connected to server")
-    socketConnected = true
-    errorMessage.textContent = ""
-})
+function setTrackerState(text, variant = "info") {
+    trackerStateMessage.textContent = text
+    trackerStateMessage.className = `tracker-state ${variant}`
+}
 
-socket.on("disconnect", () => {
-    console.log("Disconnected from server")
-    socketConnected = false
-})
+function setLapFeedback(text, variant = "") {
+    lapFeedback.textContent = text
+    lapFeedback.className = variant
+}
 
-// Authentication
-unlockBtn.addEventListener("click", () => {
-    const accessKey = accessKeyInput.value.trim()
-    
-    if (!socketConnected) {
-        errorMessage.textContent = "Connecting to server..."
+function renderCarButtons(carNumbers) {
+    carButtonsContainer.innerHTML = ""
+
+    if (carNumbers.length === 0) {
+        const emptyState = document.createElement("div")
+        emptyState.className = "car-buttons-empty"
+        emptyState.textContent = "No active race cars"
+        carButtonsContainer.appendChild(emptyState)
         return
     }
-    
-    if (accessKey === "") {
-        errorMessage.textContent = "Enter observer key"
+
+    carNumbers.forEach((carNumber) => {
+        const button = document.createElement("button")
+        button.type = "button"
+        button.className = "car-btn"
+        button.dataset.car = String(carNumber)
+        button.textContent = String(carNumber)
+        button.disabled = !canTrackLaps
+
+        button.addEventListener("click", () => {
+            if (!socket || !socket.connected || !canTrackLaps) {
+                return
+            }
+
+            button.classList.add("pulse")
+            setTimeout(() => button.classList.remove("pulse"), 300)
+
+            socket.emit("lap:crossing", { carNumber, timestamp: Date.now() }, (response) => {
+                if (!response || !response.success) {
+                    setLapFeedback(response?.error || "Failed to record lap", "error")
+                    return
+                }
+
+                if (response.message) {
+                    setLapFeedback(`Car ${carNumber}: ${response.message}`, "success")
+                    return
+                }
+
+                setLapFeedback(
+                    `Car ${carNumber}: Lap ${response.lap} - ${formatTime(response.lapTime)} (Best: ${formatTime(response.bestTime)})`,
+                    "success"
+                )
+            })
+        })
+
+        carButtonsContainer.appendChild(button)
+    })
+}
+
+function applyLifecycle(payload) {
+    const race = payload?.raceStatus
+    const hasActiveRace = Boolean(payload?.hasActiveRace && race)
+
+    if (!hasActiveRace) {
+        canTrackLaps = false
+        renderCarButtons([])
+        if (payload?.lastFinishedRace) {
+            setTrackerState("Session ended. Waiting for next race.", "warning")
+        } else {
+            setTrackerState("No active race.", "warning")
+        }
         return
     }
-    
-    // Disable button while authenticating
-    unlockBtn.disabled = true
-    errorMessage.textContent = ""
-    
-    socket.emit("auth:observer", { accessKey }, (response) => {
-        console.log("auth:observer response:", response)
-        
-        unlockBtn.disabled = false
-        
-        if (!response) {
-            errorMessage.textContent = "No response from server"
-            return
-        }
-        
-        if (!response.success) {
-            errorMessage.textContent = response.error || "Invalid access key"
-            return
-        }
-        
-        // Authentication successful - unlock interface
+
+    const mode = String(race.mode || "").toLowerCase()
+    const carNumbers = (race.drivers || [])
+        .map((driver) => Number(driver.carNumber))
+        .filter((carNumber) => Number.isInteger(carNumber))
+        .sort((a, b) => a - b)
+
+    canTrackLaps = mode !== "finish"
+    renderCarButtons(carNumbers)
+
+    if (mode === "finish") {
+        setTrackerState("Race finished. Tracking disabled until next race.", "warning")
+    } else {
+        setTrackerState(`Active race session ${race.sessionId} (${mode.toUpperCase()})`, "success")
+    }
+}
+
+function attachSocketHandlers(activeSocket) {
+    activeSocket.on("connect", () => {
         lockScreen.hidden = true
         lapTrackerPanel.hidden = false
-    })
-})
+        unlockBtn.disabled = false
+        errorMessage.textContent = ""
+        setLapFeedback("", "")
 
-// Allow Enter key to submit
-accessKeyInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-        unlockBtn.click()
-    }
-})
-
-// Lap crossing buttons
-carButtons.forEach(btn => {
-    btn.addEventListener("click", () => {
-        const carNumber = parseInt(btn.dataset.car)
-        const timestamp = Date.now()
-        
-        // Visual feedback - pulse animation
-        btn.classList.add("pulse")
-        setTimeout(() => btn.classList.remove("pulse"), 300)
-        
-        // Emit lap crossing event
-        socket.emit("lap:crossing", { carNumber, timestamp }, (response) => {
-            console.log("lap:crossing response:", response)
-            
-            if (response.success) {
-                // Show lap information
-                const lapInfo = response.lap
-                statusMessage.textContent = `Car ${carNumber}: Lap ${lapInfo.lapNumber} - ${formatTime(lapInfo.lapTime)} (Best: ${formatTime(lapInfo.bestTime)})`
-                statusMessage.className = "success"
-                
-                // Clear message after 3 seconds
-                setTimeout(() => {
-                    statusMessage.textContent = ""
-                    statusMessage.className = ""
-                }, 3000)
-            } else {
-                statusMessage.textContent = response.error || "Failed to record lap"
-                statusMessage.className = "error"
+        activeSocket.emit("getRaceLifecycle", (response) => {
+            if (response?.success) {
+                applyLifecycle(response)
             }
         })
     })
-})
 
-// Format time in milliseconds to seconds with 2 decimals
-function formatTime(ms) {
-    if (ms === null || ms === undefined) return "—"
-    return (ms / 1000).toFixed(2) + "s"
+    activeSocket.on("connect_error", (error) => {
+        unlockBtn.disabled = false
+        lockScreen.hidden = false
+        lapTrackerPanel.hidden = true
+        errorMessage.textContent = error?.message || "Invalid observer key"
+    })
+
+    activeSocket.on("disconnect", () => {
+        canTrackLaps = false
+        renderCarButtons([])
+        setTrackerState("Disconnected from server.", "warning")
+    })
+
+    activeSocket.on("race:lifecycle", applyLifecycle)
+
+    activeSocket.on("race:statusSnapshot", (state) => {
+        if (typeof state?.hasActiveRace === "boolean") {
+            applyLifecycle(state)
+        }
+    })
+
+    activeSocket.on("race:status", (state) => {
+        if (state?.active === false) {
+            applyLifecycle({ hasActiveRace: false, lastFinishedRace: state.lastFinishedRace || null })
+            return
+        }
+
+        applyLifecycle({
+            hasActiveRace: true,
+            raceStatus: {
+                sessionId: state.sessionId,
+                mode: state.mode,
+                drivers: state.drivers || []
+            },
+            lastFinishedRace: state.lastFinishedRace || null
+        })
+    })
+
+    activeSocket.on("race:sessionEnded", () => {
+        canTrackLaps = false
+        renderCarButtons([])
+        setTrackerState("Session ended. Waiting for next race.", "warning")
+    })
 }
+
+authForm.addEventListener("submit", (event) => {
+    event.preventDefault()
+
+    const accessKey = accessKeyInput.value.trim()
+    if (!accessKey) {
+        errorMessage.textContent = "Enter observer key"
+        return
+    }
+
+    unlockBtn.disabled = true
+    errorMessage.textContent = ""
+
+    if (socket) {
+        socket.disconnect()
+        socket = null
+    }
+
+    socket = io({
+        auth: {
+            role: "observer",
+            accessKey
+        }
+    })
+
+    attachSocketHandlers(socket)
+})
