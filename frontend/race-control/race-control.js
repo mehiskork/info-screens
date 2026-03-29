@@ -23,18 +23,19 @@ racePanel.hidden = true
 
 // AUTH (HANDSHAKE)
 
-unlockBtn.addEventListener("click", () => {
+const form = document.getElementById("auth-form")
+
+form.addEventListener("submit", (e) => {
+    e.preventDefault() // stop page reload
+
     const accessKey = accessKeyInput.value.trim()
 
     if (!accessKey) {
-        errorMessage.textContent = "Enter safety key"
+        errorMessage.textContent = "Enter access key"
         return
     }
 
-    // Prevent multiple sockets
-    if (socket) {
-        socket.disconnect()
-    }
+    if (socket) socket.disconnect()
 
     socket = io({
         auth: {
@@ -49,13 +50,12 @@ unlockBtn.addEventListener("click", () => {
     })
 
     socket.on("connect_error", (err) => {
-        console.log("Auth failed:", err.message)
         errorMessage.textContent = "Invalid safety key"
     })
 })
 
 // Enter key support
-accessKeyInput.addEventListener("keypress", console.log("UI unlocked"), (e) => {
+accessKeyInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") unlockBtn.click()
 })
 
