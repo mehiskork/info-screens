@@ -3,22 +3,58 @@ const timer = document.getElementById("timer")
 
 let endTime = null
 
-// HANDLE STATE FROM NEW BACKEND
-function handleState(state) {
-    const race = state.raceStatus || state.race || state
+let hideTimer
 
-    if (!race) return
+document.addEventListener("mousemove", () => {
+    document.body.style.cursor = "default"
 
-    const startTime = race.startTime
-    const duration = race.totalDuration
+    clearTimeout(hideTimer)
+    hideTimer = setTimeout(() => {
+        if (document.fullscreenElement) {
+            document.body.style.cursor = "none"
+        }
+    }, 2000)
+})
 
-    if (startTime && duration) {
-        endTime = startTime + duration * 1000
+const fsBtn = document.getElementById("fullscreen-btn")
+
+fsBtn.addEventListener("click", () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen()
     } else {
-        endTime = null
-        timer.innerText = "00:00"
+        document.exitFullscreen()
     }
-}
+})
+
+document.addEventListener("fullscreenchange", () => {
+    if (document.fullscreenElement) {
+        document.body.classList.add("fullscreen-mode")
+        fsBtn.style.display = "none"
+    } else {
+        document.body.classList.remove("fullscreen-mode")
+        fsBtn.style.display = "block"
+    }
+})
+
+socket.on("state:update", (state) => {
+    // HANDLE STATE FROM NEW BACKEND
+    function handleState(state) {
+        const race = state.raceStatus || state.race || state
+
+        if (!race) return
+
+        const startTime = race.startTime
+        const duration = race.totalDuration
+
+        if (startTime && duration) {
+            endTime = startTime + duration * 1000
+        } else {
+            endTime = null
+            timer.innerText = "00:00"
+        }
+    }
+
+})
 
 // NEW EVENTS
 socket.on("race:statusSnapshot", handleState)
