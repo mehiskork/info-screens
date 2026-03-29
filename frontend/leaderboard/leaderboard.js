@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const socket = io();
-
+    const socket = io(); // ühendus serveriga
+    // viited HTML elemntidele 
     const emptyState = document.getElementById('empty-state');
     const leaderboardCard = document.getElementById('leaderboard-card');
     const flagStatus = document.getElementById('flag-status');
