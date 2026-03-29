@@ -3,16 +3,36 @@ const timer = document.getElementById("timer")
 
 let endTime = null
 
-socket.on("state:update", (state) => {
+// HANDLE STATE FROM NEW BACKEND
+function handleState(state) {
+    const race = state.raceStatus || state.race || state
 
-    if (state.timer?.running) {
-        endTime = state.timer.endsAt
+    if (!race) return
+
+    const startTime = race.startTime
+    const duration = race.totalDuration
+
+    if (startTime && duration) {
+        endTime = startTime + duration * 1000
     } else {
         endTime = null
         timer.innerText = "00:00"
     }
+}
+
+// NEW EVENTS
+socket.on("race:statusSnapshot", handleState)
+socket.on("race:status", handleState)
+socket.on("race:modeChanged", handleState)
+
+// fallback (optional)
+socket.on("state:update", (state) => {
+    if (state.timer?.endsAt) {
+        endTime = state.timer.endsAt
+    }
 })
 
+// TIMER LOOP
 function updateTimer() {
     if (!endTime) return
 
@@ -25,9 +45,7 @@ function updateTimer() {
         String(min).padStart(2, "0") + ":" +
         String(sec).padStart(2, "0")
 
-    if (remaining <= 0) {
-        socket.emit("race:changeMode", { mode: "finish" })
-    }
+    // DO NOT EMIT FINISH HERE (backend handles it)
 }
 
 setInterval(updateTimer, 1000)

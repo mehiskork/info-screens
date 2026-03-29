@@ -1,5 +1,4 @@
-const socket = io()
-
+let socket = null
 let raceFinished = false
 
 // Lock screen elements
@@ -19,47 +18,68 @@ const finishBtn = document.getElementById("finish")
 const endSessionBtn = document.getElementById("end-session")
 
 endSessionBtn.style.display = "none"
+racePanel.hidden = true
 
-// Authentication
+
+// AUTH (HANDSHAKE)
+
 unlockBtn.addEventListener("click", () => {
     const accessKey = accessKeyInput.value.trim()
 
-    if (accessKey === "") {
+    if (!accessKey) {
         errorMessage.textContent = "Enter safety key"
         return
     }
 
-    socket.emit("auth:safety", { accessKey }, (response) => {
-        console.log("auth:safety response:", response)
+    // Prevent multiple sockets
+    if (socket) {
+        socket.disconnect()
+    }
 
-        if (!response.success) {
-            errorMessage.textContent = response.error || "Invalid access key"
-            return
+    socket = io({
+        auth: {
+            role: "safety",
+            accessKey: accessKey
         }
+    })
 
-        // Authentication successful - unlock interface
-        lockScreen.hidden = true
-        racePanel.hidden = false
+    socket.on("connect", () => {
+        console.log("Connected as safety:", socket.id)
+        setupSocketEvents()
+    })
+
+    socket.on("connect_error", (err) => {
+        console.log("Auth failed:", err.message)
+        errorMessage.textContent = "Invalid safety key"
     })
 })
 
-// Allow Enter key to submit
-accessKeyInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-        unlockBtn.click()
-    }
+// Enter key support
+accessKeyInput.addEventListener("keypress", console.log("UI unlocked"), (e) => {
+    if (e.key === "Enter") unlockBtn.click()
 })
 
-// START RACE (FIXED)
+
+// SAFE EMIT
+
+function emitSafe(event, data, callback) {
+    if (!socket || !socket.connected) {
+        alert("Not connected")
+        return
+    }
+    socket.emit(event, data, callback)
+}
+
+
+// BUTTONS
+
 startBtn.onclick = () => {
-    socket.emit("race:start", (res) => {
-        if (!res.success) {
-            alert(res.error)
-        }
+    emitSafe("race:start", null, (res) => {
+        console.log("START:", res)
+        if (!res.success) alert(res.error)
     })
 }
 
-// MODES (FIXED lowercase)
 safeBtn.onclick = () => setMode("safe")
 hazardBtn.onclick = () => setMode("hazard")
 dangerBtn.onclick = () => setMode("danger")
@@ -68,32 +88,92 @@ finishBtn.onclick = () => setMode("finish")
 function setMode(mode) {
     if (raceFinished) return
 
-    socket.emit("race:changeMode", { mode }, (res) => {
-        if (!res.success) {
-            alert(res.error)
-        }
+    emitSafe("race:changeMode", { mode }, (res) => {
+        console.log("MODE:", mode, res)
+        if (!res.success) alert(res.error)
     })
 }
 
-// UI UPDATE FROM SERVER (SOURCE OF TRUTH)
-socket.on("state:update", (state) => {
+// Correct end session
+endSessionBtn.onclick = () => {
+    emitSafe("race:endSession", null, (res) => {
+        console.log("END SESSION:", res)
+        if (!res.success) alert(res.error)
+    })
+}
 
-    const mode = state.raceMode
 
-    status.innerText = "Mode: " + mode
+// SOCKET EVENTS
 
-    if (mode === "safe") status.style.color = "lime"
-    if (mode === "hazard") status.style.color = "yellow"
-    if (mode === "danger") status.style.color = "red"
-    if (mode === "finish") {
+function setupSocketEvents() {
+
+    // Debug all events (VERY useful)
+    socket.onAny((event, data) => {
+        console.log("EVENT:", event, data)
+    })
+
+    // INITIAL STATE (unlock UI here!)
+    socket.on("race:statusSnapshot", (state) => {
+        console.log("SNAPSHOT:", state)
+
+        // ALWAYS UNLOCK (auth is already successful)
+        lockScreen.style.display = "none"
+        racePanel.style.display = "block"
+
+        // Check if race exists
+        if (!state.raceStatus || state.raceStatus.success === false) {
+            status.innerText = "No active race"
+            status.style.color = "white"
+            return
+        }
+
+        // Normal case
+        handleState(state.raceStatus)
+    })
+
+    // LIVE UPDATES
+    socket.on("race:status", (state) => handleState(state.raceStatus || state))
+    socket.on("race:modeChanged", (state) => handleState(state.raceStatus || state))
+
+    socket.on("race:finished", () => {
+        raceFinished = true
+        endSessionBtn.style.display = "inline"
+    })
+
+    socket.on("race:sessionEnded", () => {
+        raceFinished = false
+        endSessionBtn.style.display = "none"
+        status.innerText = "Session ended"
+    })
+
+    // TEMP BACKWARD COMPAT
+    socket.on("state:update", handleState)
+}
+
+
+// UI STATE HANDLER
+
+function handleState(state) {
+    if (!state || state.success === false) {
+        status.innerText = "No active race"
+        status.style.color = "white"
+        return
+    }
+
+    const mode = (state.mode || "").toLowerCase()
+
+    status.innerText = "Mode: " + mode.toUpperCase()
+
+    if (mode === "safe") {
+        status.style.color = "lime"
+    } else if (mode === "hazard") {
+        status.style.color = "yellow"
+    } else if (mode === "danger") {
+        status.style.color = "red"
+    } else if (mode === "finish") {
         status.style.color = "white"
         raceFinished = true
         endSessionBtn.style.display = "inline"
-
     }
-})
-
-endSessionBtn.onclick = () => {
-    socket.emit("race:changeMode", { mode: "reset" })
 }
 
