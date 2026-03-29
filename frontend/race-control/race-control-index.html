@@ -15,9 +15,11 @@
 
     <div id="lock-screen">
         <div class="lock-panel">
-            <h2>Safety Official Authentication</h2>
-            <input type="password" id="access-key" placeholder="Enter Safety Key" />
-            <button id="unlock-btn">Unlock</button>
+            <h2>Safety official authentication</h2>
+            <form id="auth-form">
+                <input type="password" id="access-key" placeholder="Enter access Key" />
+                <button id="unlock-btn" class="button1" type="submit">Unlock</button>
+            </form>
             <p id="error-message" class="error"></p>
         </div>
     </div>
