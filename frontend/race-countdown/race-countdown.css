@@ -1,10 +1,45 @@
-#fullscreen {
+#fullscreen-btn {
     position: fixed;
-    top: 10px;
-    right: 10px;
-    z-index: 99999;
+    top: 20px;
+    right: 20px;
+
+    z-index: 9999;
+
+    opacity: 0.6;
+}
+
+body:hover #fullscreen-btn {
+    opacity: 1;
+}
+
+.fullscreen-mode .countdown {
+    font-size: 30vw;
+}
+
+.countdown {
+    font-size: clamp(80px, 25vw, 300px);
+    font-weight: bold;
+    text-align: center;
+}
+
+.fullscreen-mode {
+    cursor: none;
+}
+
+body {
+    margin: 0;
     background: black;
     color: white;
-    padding: 10px;
-    border: none;
+    font-family: Arial;
+}
+
+
+.center-wrapper {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    width: 100%;
+    text-align: center;
 }
