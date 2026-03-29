@@ -18,9 +18,13 @@ const {
   changeRaceMode,
   endSession,
   getCurrentRaceStatus,
+  getLastFinishedRace,
   recordLapCrossing,
   getLeaderboard
 } = require('../state/raceState')
+
+const RACE_TICK_MS = 1000
+let raceTickHandle = null
 
 const ROLE = {
   PUBLIC: 'public',
@@ -71,15 +75,35 @@ function emitLeaderboardUpdated(io) {
   }
 }
 
+function getLifecyclePayload() {
+  const raceStatus = getCurrentRaceStatus()
+  const leaderboard = getLeaderboard()
+  const lastFinishedRace = getLastFinishedRace()
+
+  return {
+    hasActiveRace: raceStatus.success,
+    raceStatus: raceStatus.success ? raceStatus.race : null,
+    leaderboard: leaderboard.success ? leaderboard : null,
+    lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null
+  }
+}
+
+function emitLifecycle(io) {
+  io.emit('race:lifecycle', getLifecyclePayload())
+}
+
 function emitRaceStatus(io) {
   const result = getCurrentRaceStatus()
+  const lastFinishedRace = getLastFinishedRace()
 
   if (!result.success) {
     io.emit('race:status', {
       active: false,
       mode: 'danger',
-      timer: { running: false }
+      timer: { running: false },
+      lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null
     })
+    emitLifecycle(io)
     return
   }
 
@@ -90,17 +114,16 @@ function emitRaceStatus(io) {
     mode: race.mode,
     secondsRemaining: race.secondsRemaining,
     totalDuration: race.totalDuration,
-    startTime: race.startTime
+    startTime: race.startTime,
+    lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null
   })
+
+  emitLifecycle(io)
 }
 
 function emitRaceSnapshot(socket) {
-  const raceStatus = getCurrentRaceStatus()
-  const leaderboard = getLeaderboard()
-
   socket.emit('race:statusSnapshot', {
-    raceStatus,
-    leaderboard
+    ...getLifecyclePayload()
   })
 }
 
@@ -114,7 +137,8 @@ function broadcastState(io) {
   if (!result.success) {
     io.emit("state:update", {
       raceMode: "DANGER",
-      timer: { running: false }
+      timer: { running: false },
+      hasActiveRace: false
     })
     emitRaceStatus(io)
     return
@@ -140,7 +164,9 @@ function broadcastState(io) {
       timer: {
         running: updatedStatus.race.mode !== "finish",
         endsAt: updatedStatus.race.startTime + updatedStatus.race.totalDuration * 1000
-      }
+      },
+      hasActiveRace: true,
+      sessionId: updatedStatus.race.sessionId
     })
   }
 
@@ -148,10 +174,22 @@ function broadcastState(io) {
   emitLeaderboardUpdated(io)
 }
 
+function startRaceLifecycleTick(io) {
+  if (raceTickHandle) {
+    return
+  }
+
+  raceTickHandle = setInterval(() => {
+    broadcastState(io)
+  }, RACE_TICK_MS)
+}
+
 /**
  * Initialize Socket.IO event handlers
  */
 function initializeSocketHandlers(io) {
+  startRaceLifecycleTick(io)
+
   io.use(async (socket, next) => {
     const auth = socket.handshake.auth || {}
     const role = typeof auth.role === 'string' ? auth.role.toLowerCase() : null
@@ -442,6 +480,10 @@ function initializeSocketHandlers(io) {
       const result = getCurrentRaceStatus()
       callback(result)
     })
+
+    socket.on('getRaceLifecycle', (callback = () => {}) => {
+      callback({ success: true, ...getLifecyclePayload() })
+    })
     
     // Record lap crossing
     socket.on('lap:crossing', (data, callback) => {
@@ -462,6 +504,7 @@ function initializeSocketHandlers(io) {
           bestTime: result.bestTime || null
         })
         emitLeaderboardUpdated(io)
+        emitLifecycle(io)
       }
     })
     

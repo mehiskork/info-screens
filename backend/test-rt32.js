@@ -1,27 +1,114 @@
 // Test script for RT32: Live Next Race updates via broadcasting
 const io = require('socket.io-client')
 
-const socket = io('http://localhost:3000')
+const BASE_URL = process.env.SOCKET_URL || 'http://localhost:3000'
+const receptionistKey = process.env.RECEPTIONIST_KEY || 'receptionist123'
+const safetyKey = process.env.SAFETY_KEY || 'safety123'
+
+const socket = io(BASE_URL, {
+  auth: {
+    role: 'receptionist',
+    accessKey: receptionistKey
+  }
+})
+
+const safetySocket = io(BASE_URL, {
+  auth: {
+    role: 'safety',
+    accessKey: safetyKey
+  }
+})
 
 let session1Id = null
 let session2Id = null
 let session3Id = null
 let broadcastCount = 0
+let receptionistConnected = false
+let safetyConnected = false
 
-socket.on('connect', () => {
-  console.log('✓ Connected to server\n')
-  
+function prepareCleanState() {
+  console.log('0. Preparing clean state...')
+
+  socket.emit('getRaceStatus', (raceStatus) => {
+    if (raceStatus.success) {
+      safetySocket.emit('race:changeMode', { mode: 'finish' }, () => {
+        safetySocket.emit('session:end', () => {
+          clearQueuedSessions()
+        })
+      })
+      return
+    }
+
+    clearQueuedSessions()
+  })
+}
+
+function clearQueuedSessions() {
+  socket.emit('getSessions', (response) => {
+    if (!response.success) {
+      console.error('  ✗ Could not fetch sessions for cleanup:', response)
+      process.exit(1)
+    }
+
+    const queuedIds = response.sessions.map(s => s.id)
+
+    if (queuedIds.length === 0) {
+      console.log('  ✓ No queued sessions to clean\n')
+      runTests()
+      return
+    }
+
+    let remaining = queuedIds.length
+    queuedIds.forEach((sessionId) => {
+      socket.emit('session:remove', { sessionId }, (removeResult) => {
+        if (!removeResult.success) {
+          console.error(`  ✗ Failed to remove session ${sessionId}:`, removeResult)
+          process.exit(1)
+        }
+
+        remaining--
+        if (remaining === 0) {
+          console.log(`  ✓ Cleared ${queuedIds.length} queued sessions\n`)
+          runTests()
+        }
+      })
+    })
+  })
+}
+
+function tryStartTests() {
+  if (!receptionistConnected || !safetyConnected) {
+    return
+  }
+
   // Listen for broadcast events
   socket.on('nextRace:changed', () => {
     broadcastCount++
     console.log(`  📡 Broadcast received: nextRace:changed (count: ${broadcastCount})`)
   })
-  
-  runTests()
+
+  prepareCleanState()
+}
+
+socket.on('connect', () => {
+  receptionistConnected = true
+  console.log('✓ Connected as receptionist\n')
+  tryStartTests()
+})
+
+safetySocket.on('connect', () => {
+  safetyConnected = true
+  console.log('✓ Connected as safety\n')
+  tryStartTests()
 })
 
 socket.on('connect_error', (error) => {
-  console.error('✗ Connection failed:', error.message)
+  console.error('✗ Receptionist connection failed:', error.message)
+  process.exit(1)
+})
+
+safetySocket.on('connect_error', (error) => {
+  console.error('✗ Safety connection failed:', error.message)
   process.exit(1)
 })
 
@@ -52,17 +139,17 @@ function testAddDrivers() {
   console.log('2. Adding drivers to sessions...')
   
   // Add drivers to session 1
-  socket.emit('driver:add', { sessionId: session1Id, driverName: 'Alice' }, (r) => {
+  socket.emit('driver:add', { sessionId: session1Id, driverName: 'Alice', carNumber: 1 }, (r) => {
     if (r.success) console.log(`  ✓ Alice added to session ${session1Id}`)
   })
   
   // Add drivers to session 2
-  socket.emit('driver:add', { sessionId: session2Id, driverName: 'Bob' }, (r) => {
+  socket.emit('driver:add', { sessionId: session2Id, driverName: 'Bob', carNumber: 2 }, (r) => {
     if (r.success) console.log(`  ✓ Bob added to session ${session2Id}`)
   })
   
   // Add drivers to session 3
-  socket.emit('driver:add', { sessionId: session3Id, driverName: 'Charlie' }, (r) => {
+  socket.emit('driver:add', { sessionId: session3Id, driverName: 'Charlie', carNumber: 3 }, (r) => {
     if (r.success) console.log(`  ✓ Charlie added to session ${session3Id}\n`)
     
     setTimeout(() => testNextRaceBeforeStart(), 300)
@@ -86,7 +173,7 @@ function testNextRaceBeforeStart() {
 
 function testStartRace() {
   console.log('4. Starting race for session 1...')
-  socket.emit('race:start', { sessionId: session1Id }, (response) => {
+  safetySocket.emit('race:start', { sessionId: session1Id }, (response) => {
     if (response.success) {
       console.log(`  ✓ Race started for session ${session1Id}\n`)
       
@@ -115,7 +202,7 @@ function testNextRaceAfterStart() {
 
 function testDriverUpdate() {
   console.log('6. Testing driver update (should trigger broadcast)...')
-  socket.emit('driver:update', { sessionId: session2Id, carNumber: 1, newDriverName: 'Bobby' }, (response) => {
+  socket.emit('driver:update', { sessionId: session2Id, carNumber: 2, newDriverName: 'Bobby' }, (response) => {
     if (response.success) {
       console.log(`  ✓ Driver updated in session ${session2Id}\n`)
       
@@ -168,6 +255,7 @@ function finalVerification() {
       console.log('✓ Frontend can listen to nextRace:changed and re-fetch data\n')
       
       socket.disconnect()
+      safetySocket.disconnect()
       process.exit(0)
     } else {
       console.error('  ✗ Final verification failed:', response)
