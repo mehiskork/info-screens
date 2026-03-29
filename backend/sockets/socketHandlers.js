@@ -447,10 +447,16 @@ function initializeSocketHandlers(io) {
         return rejectUnauthorized(callback, ROLE.SAFETY)
       }
 
+      const raceStatusBeforeEnd = getCurrentRaceStatus()
+      const endedSessionId = raceStatusBeforeEnd.success ? raceStatusBeforeEnd.race.sessionId : null
       const result = endSession()
       
       if (result.success) {
-        io.emit('race:sessionEnded')
+        io.emit('race:sessionEnded', {
+          sessionId: endedSessionId,
+          endedAt: Date.now(),
+          source: 'session:end'
+        })
         io.emit('nextRace:changed')
         broadcastState(io)
       }
@@ -464,10 +470,16 @@ function initializeSocketHandlers(io) {
         return rejectUnauthorized(callback, ROLE.SAFETY)
       }
 
+      const raceStatusBeforeEnd = getCurrentRaceStatus()
+      const endedSessionId = raceStatusBeforeEnd.success ? raceStatusBeforeEnd.race.sessionId : null
       const result = endSession()
       
       if (result.success) {
-        io.emit('race:sessionEnded')
+        io.emit('race:sessionEnded', {
+          sessionId: endedSessionId,
+          endedAt: Date.now(),
+          source: 'race:endSession'
+        })
         io.emit('nextRace:changed')
         broadcastState(io)
       }

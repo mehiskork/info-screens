@@ -131,6 +131,29 @@ socket.on('race:lifecycle', (payload) => {
 
 ---
 
+### Race Session Ended
+
+**Event:** `race:sessionEnded`  
+**Direction:** Server → All Clients (broadcast)  
+**Payload:** `{ sessionId: number | null, endedAt: number, source: string }`
+
+Emitted when Safety clears a finished session from paddock state.
+
+```javascript
+socket.on('race:sessionEnded', (payload) => {
+  console.log(payload.sessionId)
+  console.log(payload.endedAt)
+  console.log(payload.source)
+})
+```
+
+**Payload Fields:**
+- `sessionId` - Session that was cleared, or `null` if unavailable
+- `endedAt` - Unix timestamp in milliseconds when the session was cleared
+- `source` - Triggering event name (`session:end` or `race:endSession`)
+
+---
+
 ## Implemented Events
 
 ### Session Management
@@ -413,6 +436,13 @@ socket.emit('race:changeMode', { mode: 'hazard' }, (response) => {
 **Auth:** Safety (required)  
 **Payload:** None  
 **Response:** `{ success: boolean, message?: string, error?: string }`
+
+**Broadcasts on success:**
+- `race:sessionEnded` with `{ sessionId, endedAt, source }`
+- `nextRace:changed`
+- `state:update`
+- `race:status`
+- `race:lifecycle`
 
 ```javascript
 socket.emit('session:end', (response) => {
