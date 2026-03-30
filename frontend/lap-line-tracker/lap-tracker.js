@@ -97,11 +97,11 @@ function applyLifecycle(payload) {
         .filter((carNumber) => Number.isInteger(carNumber))
         .sort((a, b) => a - b)
 
-    canTrackLaps = mode !== "finish"
+    canTrackLaps = true
     renderCarButtons(carNumbers)
 
     if (mode === "finish") {
-        setTrackerState("Race finished. Tracking disabled until next race.", "warning")
+        setTrackerState(`Active race session ${race.sessionId} — FINISH mode. Still recording crossings.`, "warning")
     } else {
         setTrackerState(`Active race session ${race.sessionId} (${mode.toUpperCase()})`, "success")
     }
