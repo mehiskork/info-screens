@@ -2,7 +2,7 @@ const socket = io()
 const timer = document.getElementById("timer")
 
 let endTime = null
-
+let currentMode = null
 let hideTimer
 
 document.addEventListener("mousemove", () => {
@@ -36,52 +36,82 @@ document.addEventListener("fullscreenchange", () => {
     }
 })
 
-socket.on("state:update", (state) => {
-    // HANDLE STATE FROM NEW BACKEND
-    function handleState(state) {
-        const race = state.raceStatus || state.race || state
+function handleTimerState(state) {
+    const race = state.raceStatus || state
 
-        if (!race) return
+    if (!race) return
 
-        const startTime = race.startTime
-        const duration = race.totalDuration
+    currentMode = (race.mode || "").toLowerCase()
 
-        if (startTime && duration) {
-            endTime = startTime + duration * 1000
-        } else {
-            endTime = null
-            timer.innerText = "00:00"
-        }
+    const isActive = race.active ?? state.hasActiveRace
+
+    if (!isActive) {
+        endTime = null
+        timer.innerText = "00:00:00"
+        return
     }
 
-})
-
-// NEW EVENTS
-socket.on("race:statusSnapshot", handleState)
-socket.on("race:status", handleState)
-socket.on("race:modeChanged", handleState)
-
-// fallback (optional)
-socket.on("state:update", (state) => {
-    if (state.timer?.endsAt) {
-        endTime = state.timer.endsAt
+    if (currentMode === "finish") {
+        endTime = null
+        timer.innerText = "00:00:00"
+        return
     }
-})
+
+    if (race.startTime && race.totalDuration) {
+        endTime = race.startTime + race.totalDuration * 1000
+    }
+}
+
+// USE ONLY THESE EVENTS
+socket.on("race:statusSnapshot", handleTimerState)
+socket.on("race:status", handleTimerState)
+socket.on("race:modeChanged", handleTimerState)
+
+
 
 // TIMER LOOP
+let lastText = ""
+
 function updateTimer() {
-    if (!endTime) return
+    if (currentMode === "finish") {
+        if (lastText !== "00:00:00") {
+            timer.innerText = "00:00:00"
+            lastText = "00:00:00"
+        }
+        return
+    }
+
+    if (!endTime) {
+        if (lastText !== "00:00:00") {
+            timer.innerText = "00:00:00"
+            lastText = "00:00:00"
+        }
+        return
+    }
 
     const remaining = Math.max(0, endTime - Date.now())
 
     const min = Math.floor(remaining / 60000)
     const sec = Math.floor((remaining % 60000) / 1000)
+    const hund = Math.floor((remaining % 1000) / 10)
 
-    timer.innerText =
+    const text =
         String(min).padStart(2, "0") + ":" +
-        String(sec).padStart(2, "0")
+        String(sec).padStart(2, "0") + ":" +
+        String(hund).padStart(2, "0")
 
-    // DO NOT EMIT FINISH HERE (backend handles it)
+    if (text !== lastText) {
+        timer.innerText = text
+        lastText = text
+    }
 }
 
-setInterval(updateTimer, 1000)
+function startTimerLoop() {
+    function loop() {
+        updateTimer()
+        requestAnimationFrame(loop)
+    }
+    requestAnimationFrame(loop)
+}
+
+startTimerLoop()
