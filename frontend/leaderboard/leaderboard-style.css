@@ -22,12 +22,18 @@ body {
     font-family: Arial, sans-serif;
 }
 
+/* ✅ FIX: muudatused */
+body:fullscreen {
+    display: block;
+}
+
 .screen {
     width: min(1100px, 92vw);
     display: flex;
     flex-direction: column;
     gap: 20px;
     padding: 24px;
+    transition: all 0.3s ease;
 }
 
 /* 2. Topbar ja Meta-boxid */
@@ -54,8 +60,9 @@ body {
     font-weight: bold;
 }
 
-/* 3. LIPU STAATUSED (Kopeeritud Race Controlist) */
-.safe {
+/* 3. LIPU STAATUSED */
+.safe,
+.racing {
     background-color: green !important;
     color: white;
 }
@@ -65,16 +72,16 @@ body {
     color: white;
 }
 
-.danger {
+.danger,
+.paused {
     background-color: crimson !important;
     color: white;
 }
 
-.finish {
+.finished {
     color: red !important;
     background: repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 20px 20px !important;
     text-shadow: 1px 1px 2px black;
-    /* Et tekst oleks ruudustikul loetav */
 }
 
 /* 4. Tabel ja Empty State */
@@ -116,7 +123,7 @@ body {
 /* 5. Fullscreen nupp */
 .button1 {
     background-color: #111827;
-    border: 1px solid transparent;
+    border: 1px solid var(--border);
     border-radius: .75rem;
     color: white;
     font-weight: 600;
@@ -131,4 +138,26 @@ body {
 
 [hidden] {
     display: none !important;
+}
+
+/* ✅ FULLSCREEN FIX */
+:fullscreen .screen {
+    width: 100vw;
+    height: 100vh;
+    max-width: none;
+    margin: 0;
+    padding: 40px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    gap: 30px;
+}
+
+/*  */
+:fullscreen .leaderboard-card {
+    flex-grow: 1;
+}
+
+/* eemaldab musta tausta */
+::backdrop {
+    background-color: var(--background);
 }

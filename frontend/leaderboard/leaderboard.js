@@ -1,71 +1,74 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Ühendus serveriga 
-    const socket = io();
+    const socket = io(); // ühendus serveriga
+    // viited HTML elemntidele 
+    const emptyState = document.getElementById('empty-state'); // Teade, kui rallit pole
+    const leaderboardCard = document.getElementById('leaderboard-card'); // Edetabeli kaart
+    const flagStatus = document.getElementById('flag-status'); // Lipu staatus
+    const timerDisplay = document.getElementById('timer-display'); // Taimeri kuvamine
+    const fullscreenBtn = document.getElementById('fullscreen-btn'); // fullscreen nupp
+    const mainScreen = document.querySelector('.screen'); // põhivaade
 
-    // 2. Viited HTML elementidele
-    const leaderboardTable = document.getElementById('leaderboard-data');
-    const emptyState = document.getElementById('empty-state');
-    const leaderboardCard = document.getElementById('leaderboard-card');
-    const flagStatus = document.getElementById('flag-status');
-    const timerDisplay = document.getElementById('timer-display');
-    const fullscreenBtn = document.getElementById('fullscreen-btn');
-
-    //  FULLSCREEN LOOGIKA 
-    if (fullscreenBtn) {
+    // FULLSCREEN funktsioon
+    if (fullscreenBtn && mainScreen) {
         fullscreenBtn.addEventListener('click', () => {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(err => {
-                    console.error("Fullscreen viga:", err);
+                mainScreen.requestFullscreen().catch(err => { //lülitub täisekraanile
+                    console.error("Fullscreen error:", err);
                 });
-                fullscreenBtn.innerText = "Exit Fullscreen";
-            } else {
+            } else { // väljub täisekraanist
                 document.exitFullscreen();
-                fullscreenBtn.innerText = "Fullscreen";
             }
+        });
+        document.addEventListener('fullscreenchange', () => {
+            fullscreenBtn.innerText = document.fullscreenElement ? "Exit Fullscreen" : "Fullscreen";
         });
     }
+    // live uuendused
+    // setIntervall eemaldatud
+    // server annab ise märku
 
-    //  ANDMETE UUENDAMISE FUNKTSIOONID 
+    // edetabeli uuendused serverist
+    socket.on('leaderboardUpdate', (data) => {
+        if (data && data.length > 0) {
+            renderLeaderboard(data); // kuvab edetabeli
+            emptyState.hidden = true;
+            leaderboardCard.hidden = false; // näitab edetabelit
+        } else {
+            emptyState.hidden = false; // kui pole aktiivset sõitu
+            leaderboardCard.hidden = true; // peidab edetabeli
+        }
+    });
 
-    function updateAll() {
-        //  värske edetabel
-        socket.emit('getLeaderboard', (response) => {
-            if (response.success && response.leaderboard) {
-                renderLeaderboard(response.leaderboard);
-                emptyState.hidden = true;
-                leaderboardCard.hidden = false;
-            } else {
-                // Kui ralli pole aktiivne
-                emptyState.hidden = false;
-                leaderboardCard.hidden = true;
-            }
-        });
+    // ralli staatus ja taimer 
+    socket.on('raceStatusUpdate', (race) => {
+        if (race) {
+            // minutite ja sekundite arvutused
+            const minutes = Math.floor(race.secondsRemaining / 60);
+            const seconds = race.secondsRemaining % 60;
 
-        // ralli staatus (aeg ja lipu värv)
-        socket.emit('getRaceStatus', (response) => {
-            if (response.success && response.race) {
-                const race = response.race;
-                timerDisplay.innerText = `Timer: ${race.secondsRemaining}s`;
-                flagStatus.innerText = `Flag: ${race.mode.toUpperCase()}`;
+            // kui alla kümne, siis tuleb null ette
+            const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 
-                // lipu kasti värvid vastavalt režiimile (CSS klassid: safe, racing, paused)
-                flagStatus.className = 'meta-box ' + race.mode;
-            } else {
-                timerDisplay.innerText = "Timer: --:--";
-                flagStatus.innerText = "Flag: Waiting";
-                flagStatus.className = 'meta-box';
-            }
-        });
-    }
+            timerDisplay.innerText = `Timer: ${timeString}`; // Kuvab allesjäänud aja
+            const mode = race.mode || 'waiting'; // Lipu tekst (SAFE, RACING, PAUSED)
+            flagStatus.innerText = `Flag: ${mode.toUpperCase()}`;
+            flagStatus.className = 'meta-box ' + mode; // muudab kasti värvid
+        } else {
+            // kui ralli ei toimu hetkel
+            timerDisplay.innerText = "Timer: --:--";
+            flagStatus.innerText = "Flag: Waiting";
+            flagStatus.className = 'meta-box';
+        }
+    });
 
-    // andmete uuendamine (1 sekund)
-    setInterval(updateAll, 1000);
-
-    // Esimene laadimine kohe
-    updateAll();
+    // Algseisu küsimine lehe laadimisel 
+    socket.emit('getLeaderboard', (response) => {
+        if (response.success && response.leaderboard) {
+            renderLeaderboard(response.leaderboard);
+        }
+    });
 });
-
-// Funktsioon andmete tabelisse joonistamiseks
+// edetabeli kuvamine
 function renderLeaderboard(data) {
     const tbody = document.getElementById('leaderboard-data');
     if (!tbody) return;
@@ -74,11 +77,11 @@ function renderLeaderboard(data) {
     data.forEach((driver, index) => {
         const row = document.createElement('tr');
 
-        // millisekundid sekunditeks 
+        // millisekundid sekunditeks
         const bestTimeStr = driver.bestTime
             ? (driver.bestTime / 1000).toFixed(3) + 's'
             : '--:--';
-
+        // ridade lisamine tabelisse
         row.innerHTML = `
             <td>${index + 1}</td>
             <td>${driver.carNumber}</td>
