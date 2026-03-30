@@ -74,7 +74,7 @@ function emitSafe(event, data, callback) {
 // BUTTONS
 
 startBtn.onclick = () => {
-    emitSafe("race:start", null, (res) => {
+    emitSafe("race:start", (res) => {
         console.log("START:", res)
         if (!res.success) alert(res.error)
     })
@@ -96,7 +96,9 @@ function setMode(mode) {
 
 // Correct end session
 endSessionBtn.onclick = () => {
-    emitSafe("race:endSession", null, (res) => {
+    if (!socket || !socket.connected) return
+
+    socket.emit("race:endSession", (res) => {
         console.log("END SESSION:", res)
         if (!res.success) alert(res.error)
     })
@@ -121,9 +123,9 @@ function setupSocketEvents() {
         racePanel.style.display = "block"
 
         // Check if race exists
-        if (!state.raceStatus || state.raceStatus.success === false) {
+        if (!state.raceStatus || state.raceStatus.active === false) {
             status.innerText = "No active race"
-            status.style.color = "white"
+            status.style.color = "#ccc"
             return
         }
 
@@ -146,21 +148,27 @@ function setupSocketEvents() {
         status.innerText = "Session ended"
     })
 
-    // TEMP BACKWARD COMPAT
-    socket.on("state:update", handleState)
+
 }
 
 
 // UI STATE HANDLER
 
 function handleState(state) {
-    if (!state || state.success === false) {
-        status.innerText = "No active race"
-        status.style.color = "white"
+    if (!state) {
+        setIdle()
         return
     }
 
-    const mode = (state.mode || "").toLowerCase()
+    const isActive = state.active ?? state.hasActiveRace
+    const modeRaw = state.mode || state.raceMode
+
+    if (!isActive) {
+        setIdle()
+        return
+    }
+
+    const mode = (modeRaw || "").toLowerCase()
 
     status.innerText = "Mode: " + mode.toUpperCase()
 
@@ -176,4 +184,25 @@ function handleState(state) {
         endSessionBtn.style.display = "inline"
     }
 }
+
+function setIdle() {
+    status.innerText = "No active race"
+    status.style.color = "red"
+
+    raceFinished = false
+    endSessionBtn.style.display = "none"
+}
+
+socket.on("connect", () => {
+    status.innerText = "Connected"
+    status.style.color = "white"
+})
+
+socket.on("disconnect", () => {
+    status.innerText = "Disconnected"
+    status.style.color = "gray"
+})
+
+
+
 
