@@ -23,43 +23,43 @@ document.addEventListener('DOMContentLoaded', () => {
             fullscreenBtn.innerText = document.fullscreenElement ? "Exit Fullscreen" : "Fullscreen";
         });
     }
-    // andmete uuendamine
-    function updateAll() {
-        // 1. edetabeli küsimine 
-        socket.emit('getLeaderboard', (response) => {
-            if (response.success && response.leaderboard && response.leaderboard.length > 0) {
-                renderLeaderboard(response.leaderboard); // kuvab edetabeli
-                emptyState.hidden = true;
-                leaderboardCard.hidden = false; // näitab edetabelit
-            } else {
-                emptyState.hidden = false; // kui pole aktiivset sõitu
-                leaderboardCard.hidden = true; // peidab edetabeli
-            }
-        });
+    // live uuendused
+    // setIntervall eemaldatud
+    // server annab ise märku
 
-        // 2. ralli staatus
-        socket.emit('getRaceStatus', (response) => {
-            if (response.success && response.race) {
-                const race = response.race;
-                timerDisplay.innerText = `Timer: ${race.secondsRemaining}s`; // Kuvab allesjäänud aja
+    // edetabeli uuendused serverist
+    socket.on('leaderboardUpdate', (data) => {
+        if (data && data.length > 0) {
+            renderLeaderboard(data); // kuvab edetabeli
+            emptyState.hidden = true;
+            leaderboardCard.hidden = false; // näitab edetabelit
+        } else {
+            emptyState.hidden = false; // kui pole aktiivset sõitu
+            leaderboardCard.hidden = true; // peidab edetabeli
+        }
+    });
 
-                // Lipu tekst (SAFE, RACING, PAUSED)
-                const mode = race.mode || 'waiting';
-                flagStatus.innerText = `Flag: ${mode.toUpperCase()}`;
+    // ralli staatuse ja taimeri uuendused
+    socket.on('raceStatusUpdate', (race) => {
+        if (race) {
+            timerDisplay.innerText = `Timer: ${race.secondsRemaining}s`; // Kuvab allesjäänud aja
+            const mode = race.mode || 'waiting';
+            flagStatus.innerText = `Flag: ${mode.toUpperCase()}`;
+            flagStatus.className = 'meta-box ' + mode; // muudab kasti värvid
+        } else {
+            // kui ralli ei toimu hetkel
+            timerDisplay.innerText = "Timer: --:--";
+            flagStatus.innerText = "Flag: Waiting";
+            flagStatus.className = 'meta-box';
+        }
+    });
 
-                // muudab kasti värvid
-                flagStatus.className = 'meta-box ' + mode;
-            } else {
-                // kui ralli ei toimu hetkel, siis kuvab selle
-                timerDisplay.innerText = "Timer: --:--";
-                flagStatus.innerText = "Flag: Waiting";
-                flagStatus.className = 'meta-box';
-            }
-        });
-    }
-    // uuendab iga sekundi järel andmeid
-    setInterval(updateAll, 1000);
-    updateAll();
+    // Algseisu küsimine lehe laadimisel (et ekraan ei oleks alguses tühi)
+    socket.emit('getLeaderboard', (response) => {
+        if (response.success && response.leaderboard) {
+            renderLeaderboard(response.leaderboard);
+        }
+    });
 });
 // edetabeli kuvamine
 function renderLeaderboard(data) {
