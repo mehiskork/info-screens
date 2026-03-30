@@ -39,11 +39,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ralli staatuse ja taimeri uuendused
+    // ralli staatus ja taimer 
     socket.on('raceStatusUpdate', (race) => {
         if (race) {
-            timerDisplay.innerText = `Timer: ${race.secondsRemaining}s`; // Kuvab allesjäänud aja
-            const mode = race.mode || 'waiting';
+            // minutite ja sekundite arvutused
+            const minutes = Math.floor(race.secondsRemaining / 60);
+            const seconds = race.secondsRemaining % 60;
+
+            // kui alla kümne, siis tuleb null ette
+            const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+            timerDisplay.innerText = `Timer: ${timeString}`; // Kuvab allesjäänud aja
+            const mode = race.mode || 'waiting'; // Lipu tekst (SAFE, RACING, PAUSED)
             flagStatus.innerText = `Flag: ${mode.toUpperCase()}`;
             flagStatus.className = 'meta-box ' + mode; // muudab kasti värvid
         } else {
