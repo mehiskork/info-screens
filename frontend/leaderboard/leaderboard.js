@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Algseisu küsimine lehe laadimisel (et ekraan ei oleks alguses tühi)
+    // Algseisu küsimine lehe laadimisel 
     socket.emit('getLeaderboard', (response) => {
         if (response.success && response.leaderboard) {
             renderLeaderboard(response.leaderboard);
