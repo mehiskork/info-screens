@@ -156,12 +156,25 @@ body {
     }
 
     .topbar {
-        flex-direction: column;
-        align-items: stretch;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .topbar h1 {
+        min-width: 0;
+        font-size: 1.8rem;
+    }
+
+    .button1 {
+        width: auto;
+        flex-shrink: 0;
     }
 
     .meta {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
     }
 
     .race-card {
@@ -169,12 +182,13 @@ body {
     }
 
     .driver-row {
-        grid-template-columns: 1fr;
-        gap: 10px;
+        grid-template-columns: 88px minmax(0, 1fr);
+        gap: 12px;
+        padding: 8px 12px;
     }
 
     .driver-badge {
-        min-width: 0;
-        width: fit-content;
+        width: 88px;
+        min-width: 88px;
     }
 }

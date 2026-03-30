@@ -8,7 +8,7 @@ const sessionsContainer = document.getElementById("sessions-container");
 
 
 let socket = null;
-const MAX_DRIVER_NAME_LENGTH = 40;
+const MAX_DRIVER_NAME_LENGTH = 25;
 let queueListenerAttached = false;
 
 // all names uppercase when adding a driver. Can change in edit if needed
