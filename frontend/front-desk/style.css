@@ -380,14 +380,37 @@ body {
     }
 
     .driver-row {
-        grid-template-columns: 48px 1fr;
+        grid-template-columns: 88px minmax(0, 1fr);
+        grid-template-areas:
+            "badge name"
+            "edit remove";
         align-items: center;
+        row-gap: 10px;
+    }
+
+    .driver-badge {
+        grid-area: badge;
+        width: 88px;
+    }
+
+    .driver-name,
+    .edit-driver-input {
+        grid-area: name;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
 
     .edit-driver-btn,
+    .save-driver-btn {
+        grid-area: edit;
+        justify-self: start;
+    }
+
     .rmv-driver-btn,
-    .save-driver-btn,
     .cancel-driver-btn {
+        grid-area: remove;
         justify-self: start;
     }
 
