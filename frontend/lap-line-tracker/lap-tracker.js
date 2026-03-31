@@ -1,5 +1,6 @@
 let socket = null
 let canTrackLaps = false
+let renderedCarsSignature = ""
 
 const lockScreen = document.getElementById("lock-screen")
 const authForm = document.getElementById("auth-form")
@@ -76,13 +77,28 @@ function renderCarButtons(carNumbers) {
     })
 }
 
+function syncCarButtons(carNumbers) {
+    const signature = carNumbers.join(",")
+
+    if (signature !== renderedCarsSignature) {
+        renderedCarsSignature = signature
+        renderCarButtons(carNumbers)
+        return
+    }
+
+    // Keep disabled state in sync without rebuilding the grid each update tick.
+    carButtonsContainer.querySelectorAll(".car-btn").forEach((button) => {
+        button.disabled = !canTrackLaps
+    })
+}
+
 function applyLifecycle(payload) {
     const race = payload?.raceStatus
     const hasActiveRace = Boolean(payload?.hasActiveRace && race)
 
     if (!hasActiveRace) {
         canTrackLaps = false
-        renderCarButtons([])
+        syncCarButtons([])
         if (payload?.lastFinishedRace) {
             setTrackerState("Session ended. Waiting for next race.", "warning")
         } else {
@@ -98,7 +114,7 @@ function applyLifecycle(payload) {
         .sort((a, b) => a - b)
 
     canTrackLaps = true
-    renderCarButtons(carNumbers)
+    syncCarButtons(carNumbers)
 
     if (mode === "finish") {
         setTrackerState(`Active race session ${race.sessionId} — FINISH mode. Still recording crossings.`, "warning")
@@ -131,7 +147,7 @@ function attachSocketHandlers(activeSocket) {
 
     activeSocket.on("disconnect", () => {
         canTrackLaps = false
-        renderCarButtons([])
+        syncCarButtons([])
         setTrackerState("Disconnected from server.", "warning")
     })
 
@@ -143,26 +159,13 @@ function attachSocketHandlers(activeSocket) {
         }
     })
 
-    activeSocket.on("race:status", (state) => {
-        if (state?.active === false) {
-            applyLifecycle({ hasActiveRace: false, lastFinishedRace: state.lastFinishedRace || null })
-            return
-        }
-
-        applyLifecycle({
-            hasActiveRace: true,
-            raceStatus: {
-                sessionId: state.sessionId,
-                mode: state.mode,
-                drivers: state.drivers || []
-            },
-            lastFinishedRace: state.lastFinishedRace || null
-        })
-    })
+    // race:status omits drivers in backend payload; handling it here caused
+    // periodic empty/non-empty button redraw flicker. race:lifecycle + snapshot
+    // already provide the required full payload for this screen.
 
     activeSocket.on("race:sessionEnded", () => {
         canTrackLaps = false
-        renderCarButtons([])
+        syncCarButtons([])
         setTrackerState("Session ended. Waiting for next race.", "warning")
     })
 }
