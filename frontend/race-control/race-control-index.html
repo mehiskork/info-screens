@@ -9,7 +9,18 @@
 
 <body class="dark">
 
-    <div id="race-panel">
+    <!-- Lock Screen for Authentication -->
+    <div id="lock-screen">
+        <div class="lock-panel">
+            <h2>Safety Official Authentication</h2>
+            <input type="password" id="access-key" placeholder="Enter Safety Key" />
+            <button id="unlock-btn">Unlock</button>
+            <p id="error-message" class="error"></p>
+        </div>
+    </div>
+
+    <!-- Race Control Panel (hidden until authenticated) -->
+    <div id="race-panel" hidden>
 
         <h2>Race Control</h2>
 

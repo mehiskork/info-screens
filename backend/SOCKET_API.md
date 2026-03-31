@@ -22,6 +22,48 @@ socket.on('disconnect', () => {
 
 ---
 
+## Broadcast Events
+
+The server emits broadcast events to all connected clients when certain state changes occur. These events have no payload and serve as notifications to re-fetch data.
+
+### Next Race Changed
+
+**Event:** `nextRace:changed`  
+**Direction:** Server → All Clients (broadcast)  
+**Payload:** None
+
+Emitted when the next race queue changes due to:
+- Session added or removed
+- Driver added, removed, or updated in any session
+- Race started (active race no longer shows as "next")
+
+```javascript
+socket.on('nextRace:changed', () => {
+  // Re-fetch the next race data
+  socket.emit('getNextRace', (response) => {
+    if (response.success) {
+      console.log('Next race updated:', response.data)
+      // Update UI with new next race data
+    }
+  })
+})
+```
+
+**Usage Pattern for /next-race frontend:**
+```javascript
+// Listen for changes
+socket.on('nextRace:changed', loadNextRace)
+
+// Initial load
+function loadNextRace() {
+  socket.emit('getNextRace', (response) => {
+    // Update display
+  })
+}
+```
+
+---
+
 ## Implemented Events
 
 ### Session Management
@@ -44,7 +86,7 @@ socket.emit('getSessions', (response) => {
 ```javascript
 {
   id: 1,              // Unique session ID
-  drivers: [          // Array of drivers in this session
+  drivers: [          // Array of drivers in this session (sorted by carNumber)
     { 
       name: "Alice",    // Driver name
       carNumber: 1      // Assigned car (1-8)
@@ -52,6 +94,11 @@ socket.emit('getSessions', (response) => {
   ]
 }
 ```
+
+**Notes:**
+- Returns only **queued upcoming sessions** (excludes the currently active race)
+- Drivers within each session are **sorted by carNumber** (ascending, numeric)
+- If a race is active, that session will not appear in the results
 
 ---
 
@@ -110,6 +157,13 @@ socket.emit('getNextRace', (response) => {
 })
 ```
 
+**Notes:**
+- Returns the next queued session (not the currently active race)
+- If no race is active, returns the first session in the queue
+- If a race is active, returns the session after it in the queue
+- Returns error if no sessions are queued
+- Drivers are **sorted by carNumber** (ascending, numeric) in returned data
+
 ---
 
 ### Driver Management
@@ -118,18 +172,22 @@ socket.emit('getNextRace', (response) => {
 
 **Event:** `driver:add`  
 **Auth:** None (pending)  
-**Payload:** `{ sessionId: number, driverName: string }`  
+**Payload:** `{ sessionId: number, driverName: string, carNumber: number }`  
 **Response:** `{ success: boolean, driver?: Object, error?: string }`
 
 ```javascript
-socket.emit('driver:add', { sessionId: 1, driverName: 'Alice' }, (response) => {
+socket.emit('driver:add', { sessionId: 1, driverName: 'Alice', carNumber: 3 }, (response) => {
   if (response.success) {
     console.log('Driver added:', response.driver)
-    // response.driver = { name: "Alice", carNumber: 1 }
+    // response.driver = { name: "Alice", carNumber: 3 }
   } else {
     console.error(response.error)
     // Possible errors:
     // - "Session not found"
+    // - "Car number is required"
+    // - "Car number must be a valid number"
+    // - "Car number must be between 1 and 8"
+    // - "Car X is already assigned in this session"
     // - "Driver name must be unique in this session"
     // - "Session is full (max 8 drivers)"
   }
@@ -137,7 +195,8 @@ socket.emit('driver:add', { sessionId: 1, driverName: 'Alice' }, (response) => {
 ```
 
 **Notes:**
-- Car numbers (1-8) are auto-assigned (lowest available)
+- **Car number (1-8) must be provided by the receptionist** (manual selection)
+- Car numbers must be unique within a session
 - Driver names must be unique within a session
 - Maximum 8 drivers per session
 
@@ -379,8 +438,8 @@ socket.on('connect', () => {
     const sessionId = r.session.id
     
     // 2. Add drivers
-    socket.emit('driver:add', { sessionId, driverName: 'Alice' }, console.log)
-    socket.emit('driver:add', { sessionId, driverName: 'Bob' }, console.log)
+    socket.emit('driver:add', { sessionId, driverName: 'Alice', carNumber: 1 }, console.log)
+    socket.emit('driver:add', { sessionId, driverName: 'Bob', carNumber: 2 }, console.log)
     
     // 3. Start race
     socket.emit('race:start', { sessionId }, console.log)
@@ -429,11 +488,64 @@ socket.emit('auth:receptionist', { accessKey: 'your-key-here' }, (response) => {
 
 ---
 
+### Authenticate Safety Official
+
+**Event:** `auth:safety`  
+**Payload:** `{ accessKey: string }`  
+**Response:** `{ success: boolean, role?: string, error?: string }`
+
+```javascript
+socket.emit('auth:safety', { accessKey: 'your-key-here' }, (response) => {
+  if (response.success) {
+    console.log('Authenticated as:', response.role)
+    // response.role = "safety"
+    // Grant access to race control interface
+  } else {
+    console.error(response.error) // "Invalid access key"
+    // Note: Wrong key responses include a 500ms delay to prevent brute force
+  }
+})
+```
+
+**Notes:**
+- Correct key: Instant response (~1ms)
+- Wrong key: 500ms delay before response (security feature)
+- Access key stored in `.env` file as `SAFETY_KEY`
+- Used by race control interface to authenticate safety officials
+
+---
+
+### Authenticate Observer
+
+**Event:** `auth:observer`  
+**Payload:** `{ accessKey: string }`  
+**Response:** `{ success: boolean, role?: string, error?: string }`
+
+```javascript
+socket.emit('auth:observer', { accessKey: 'your-key-here' }, (response) => {
+  if (response.success) {
+    console.log('Authenticated as:', response.role)
+    // response.role = "observer"
+    // Grant access to lap-line tracker interface
+  } else {
+    console.error(response.error) // "Invalid access key"
+    // Note: Wrong key responses include a 500ms delay to prevent brute force
+  }
+})
+```
+
+**Notes:**
+- Correct key: Instant response (~1ms)
+- Wrong key: 500ms delay before response (security feature)
+- Access key stored in `.env` file as `OBSERVER_KEY`
+- Used by lap-line tracker interface to authenticate observers
+
+---
+
 ## TODO - Not Yet Implemented
 
 ### Authentication
-- `auth:safety` - Authenticate safety official
-- `auth:observer` - Authenticate observer (lap-line observer)
+- ✅ All authentication implemented (receptionist, safety, observer)
 
 ### Session Control
 - `race:endSession` - Formally end race session after cars return to pit
@@ -447,14 +559,23 @@ socket.emit('auth:receptionist', { accessKey: 'your-key-here' }, (response) => {
 
 ## For Frontend Team
 
-**Current Status:** Core racing features and receptionist authentication are fully functional. You can:
+**Current Status:** Core racing features and all authentication roles are fully functional. You can:
 - Create and manage sessions
-- Add/remove/update drivers (auto car assignment 1-8)
-- Authenticate receptionists with access keys
+- Add/remove/update drivers (manual car assignment 1-8)
+- Authenticate receptionists, safety officials, and observers with access keys
 - Start races and control race modes (safe/racing/paused/finished)
 - Query next race in queue
 - Record lap crossings and calculate lap times
 - Get real-time leaderboard sorted by best lap time
 - Get race status with time remaining
+- Next race updates broadcast in real-time (nextRace:changed event)
 
-**Pending:** Safety & observer authentication, real-time broadcasting, formal session end event
+**Available Interfaces:**
+- `/front-desk` - Receptionist authentication, session and driver management
+- `/next-race` - Public display of next race with real-time updates
+- `/race-control` - Safety official authentication, race start and mode control
+- `/race-countdown` - Race timer display (needs connection to backend)
+- `/race-flags` - Race status flag display (needs connection to backend)
+- `/lap-line-tracker` - Observer authentication, lap crossing recording (NEW in RT41)
+
+**Pending:** Real-time broadcasting for race status/lap events, formal session end event
