@@ -78,7 +78,7 @@ body:fullscreen {
     color: white;
 }
 
-.finished {
+.finish {
     color: red !important;
     background: repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 20px 20px !important;
     text-shadow: 1px 1px 2px black;

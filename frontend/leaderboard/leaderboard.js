@@ -28,9 +28,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // server annab ise märku
 
     // edetabeli uuendused serverist
-    socket.on('leaderboardUpdate', (data) => {
-        if (data && data.length > 0) {
-            renderLeaderboard(data); // kuvab edetabeli
+    socket.on('leaderboard:updated', (data) => {
+        if (data.leaderboard && data.leaderboard.length > 0) {
+            renderLeaderboard(data.leaderboard); // kuvab edetabeli
             emptyState.hidden = true;
             leaderboardCard.hidden = false; // näitab edetabelit
         } else {
@@ -40,8 +40,8 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ralli staatus ja taimer 
-    socket.on('raceStatusUpdate', (race) => {
-        if (race) {
+    socket.on('race:status', (race) => {
+        if (race && race.active) {
             // minutite ja sekundite arvutused
             const minutes = Math.floor(race.secondsRemaining / 60);
             const seconds = race.secondsRemaining % 60;
@@ -58,7 +58,44 @@ document.addEventListener('DOMContentLoaded', () => {
             timerDisplay.innerText = "Timer: --:--";
             flagStatus.innerText = "Flag: Waiting";
             flagStatus.className = 'meta-box';
+            // näitab viimast lõppenud ralli edetabelit
+            // varem kadus edetabel kohe kui ralli lõppes, nüüd jääb nähtavaks
+            if (race.lastFinishedRace && race.lastFinishedRace.leaderboard) {
+                renderLeaderboard(race.lastFinishedRace.leaderboard);
+                emptyState.hidden = true;
+                leaderboardCard.hidden = false;
+            } else {
+                emptyState.hidden = false;
+                leaderboardCard.hidden = true;
+            }
         }
+    });
+    // Snapshoti funktsioon lisatud ✅ RT57
+    // hoiab ära vananenud taimeri/lipu kuvamise lehe laadimisel
+    socket.on('race:statusSnapshot', (data) => {
+        if (data.raceStatus) {
+            const race = data.raceStatus;
+            const minutes = Math.floor(race.secondsRemaining / 60);
+            const seconds = race.secondsRemaining % 60;
+            const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+            timerDisplay.innerText = `Timer: ${timeString}`;
+            const mode = race.mode || 'waiting';
+            flagStatus.innerText = `Flag: ${mode.toUpperCase()}`;
+            flagStatus.className = 'meta-box ' + mode;
+        }
+        if (data.leaderboard) {
+            renderLeaderboard(data.leaderboard.leaderboard);
+            emptyState.hidden = true;
+            leaderboardCard.hidden = false;
+        }
+        // näitab viimast lõppenud ralli edetabelit lehe laadimisel ✅ RT57
+        // kui ralli pole aktiivne aga lastFinishedRace on olemas, kuvatakse see kohe
+        if (!data.raceStatus && !data.leaderboard && data.lastFinishedRace && data.lastFinishedRace.leaderboard) {
+            renderLeaderboard(data.lastFinishedRace.leaderboard);
+            emptyState.hidden = true;
+            leaderboardCard.hidden = false;
+        }
+
     });
 
     // Algseisu küsimine lehe laadimisel 
@@ -87,7 +124,7 @@ function renderLeaderboard(data) {
             <td>${driver.carNumber}</td>
             <td>${driver.name}</td>
             <td>${bestTimeStr}</td>
-            <td>${driver.lapTimes || 0}</td>
+            <td>${driver.currentLap || 0}</td> 
         `;
         tbody.appendChild(row);
     });
