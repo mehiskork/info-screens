@@ -1,5 +1,4 @@
-const socket = io()
-
+let socket = null
 let raceFinished = false
 
 // Lock screen elements
@@ -19,94 +18,191 @@ const finishBtn = document.getElementById("finish")
 const endSessionBtn = document.getElementById("end-session")
 
 endSessionBtn.style.display = "none"
+racePanel.hidden = true
 
-// Authentication
-unlockBtn.addEventListener("click", () => {
+
+// AUTH (HANDSHAKE)
+
+const form = document.getElementById("auth-form")
+
+form.addEventListener("submit", (e) => {
+    e.preventDefault() // stop page reload
+
     const accessKey = accessKeyInput.value.trim()
-    
-    if (accessKey === "") {
-        errorMessage.textContent = "Enter safety key"
+
+    if (!accessKey) {
+        errorMessage.textContent = "Enter access key"
         return
     }
-    
-    socket.emit("auth:safety", { accessKey }, (response) => {
-        console.log("auth:safety response:", response)
-        
-        if (!response.success) {
-            errorMessage.textContent = response.error || "Invalid access key"
-            return
+
+    if (socket) socket.disconnect()
+
+    socket = io({
+        auth: {
+            role: "safety",
+            accessKey: accessKey
         }
-        
-        // Authentication successful - unlock interface
-        lockScreen.hidden = true
-        racePanel.hidden = false
+    })
+
+    socket.on("connect", () => {
+        console.log("Connected as safety:", socket.id)
+        setupSocketEvents()
+    })
+
+    socket.on("connect_error", (err) => {
+        errorMessage.textContent = "Invalid safety key"
     })
 })
 
-// Allow Enter key to submit
+// Enter key support
 accessKeyInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") {
-        unlockBtn.click()
-    }
+    if (e.key === "Enter") unlockBtn.click()
 })
+
+
+// SAFE EMIT
+
+function emitSafe(event, data, callback) {
+    if (!socket || !socket.connected) {
+        alert("Not connected")
+        return
+    }
+    socket.emit(event, data, callback)
+}
+
+
+// BUTTONS
 
 startBtn.onclick = () => {
-
-    socket.emit("race:start")
-
-    socket.emit("race:mode:set", "SAFE")
-
+    emitSafe("race:start", (res) => {
+        console.log("START:", res)
+        if (!res.success) alert(res.error)
+    })
 }
 
-safeBtn.onclick = () => setMode("SAFE")
-hazardBtn.onclick = () => setMode("HAZARD")
-dangerBtn.onclick = () => setMode("DANGER")
-finishBtn.onclick = () => setMode("FINISH")
+safeBtn.onclick = () => setMode("safe")
+hazardBtn.onclick = () => setMode("hazard")
+dangerBtn.onclick = () => setMode("danger")
+finishBtn.onclick = () => setMode("finish")
 
 function setMode(mode) {
-
     if (raceFinished) return
 
-    socket.emit("race:mode:set", mode)
-
-    status.innerText = "Mode: " + mode
-
-    if (mode === "FINISH") {
-        raceFinished = true
-        endSessionBtn.style.display = "inline"
-
-        safeBtn.disabled = true
-        hazardBtn.disabled = true
-        dangerBtn.disabled = true
-    }
-
+    emitSafe("race:changeMode", { mode }, (res) => {
+        console.log("MODE:", mode, res)
+        if (!res.success) alert(res.error)
+    })
 }
 
-function updateStatus(mode) {
-
-    status.innerText = "Mode: " + mode
-
-    if (mode === "SAFE") status.style.color = "lime"
-    if (mode === "HAZARD") status.style.color = "yellow"
-    if (mode === "DANGER") status.style.color = "red"
-    if (mode === "FINISH") status.style.color = "cyan"
-
-}
-
+// Correct end session
 endSessionBtn.onclick = () => {
+    if (!socket || !socket.connected) return
 
-    socket.emit("race:endSession")
+    socket.emit("race:endSession", (res) => {
+        console.log("END SESSION:", res)
+        if (!res.success) alert(res.error)
+    })
+}
+
+
+// SOCKET EVENTS
+
+function setupSocketEvents() {
+
+    // Debug all events (VERY useful)
+    socket.onAny((event, data) => {
+        console.log("EVENT:", event, data)
+    })
+
+    // INITIAL STATE (unlock UI here!)
+    socket.on("race:statusSnapshot", (state) => {
+        console.log("SNAPSHOT:", state)
+
+        // ALWAYS UNLOCK (auth is already successful)
+        lockScreen.style.display = "none"
+        racePanel.style.display = "block"
+
+        // Check if race exists
+        if (!state.raceStatus || state.raceStatus.active === false) {
+            status.innerText = "No active race"
+            status.style.color = "#ccc"
+            return
+        }
+
+        // Normal case
+        handleState(state.raceStatus)
+    })
+
+    // LIVE UPDATES
+    socket.on("race:status", (state) => handleState(state.raceStatus || state))
+    socket.on("race:modeChanged", (state) => handleState(state.raceStatus || state))
+
+    socket.on("race:finished", () => {
+        raceFinished = true
+        endSessionBtn.style.display = "inline"
+    })
+
+    socket.on("race:sessionEnded", () => {
+        raceFinished = false
+        endSessionBtn.style.display = "none"
+        status.innerText = "Session ended"
+    })
+
 
 }
 
-socket.on("state:update", (state) => {
 
-    if (state.raceMode === "FINISH") {
+// UI STATE HANDLER
 
-        raceFinished = true
-        endSessionBtn.style.display = "inline"
-
+function handleState(state) {
+    if (!state) {
+        setIdle()
+        return
     }
 
+    const isActive = state.active ?? state.hasActiveRace
+    const modeRaw = state.mode || state.raceMode
+
+    if (!isActive) {
+        setIdle()
+        return
+    }
+
+    const mode = (modeRaw || "").toLowerCase()
+
+    status.innerText = "Mode: " + mode.toUpperCase()
+
+    if (mode === "safe") {
+        status.style.color = "lime"
+    } else if (mode === "hazard") {
+        status.style.color = "yellow"
+    } else if (mode === "danger") {
+        status.style.color = "red"
+    } else if (mode === "finish") {
+        status.style.color = "white"
+        raceFinished = true
+        endSessionBtn.style.display = "inline"
+    }
+}
+
+function setIdle() {
+    status.innerText = "No active race"
+    status.style.color = "red"
+
+    raceFinished = false
+    endSessionBtn.style.display = "none"
+}
+
+socket.on("connect", () => {
+    status.innerText = "Connected"
+    status.style.color = "white"
 })
+
+socket.on("disconnect", () => {
+    status.innerText = "Disconnected"
+    status.style.color = "gray"
+})
+
+
+
 

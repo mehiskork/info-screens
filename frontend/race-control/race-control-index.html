@@ -9,36 +9,37 @@
 
 <body class="dark">
 
-    <!-- Lock Screen for Authentication -->
+
+
+    <!-- Race Control Panel (hidden until authenticated) -->
+
     <div id="lock-screen">
         <div class="lock-panel">
-            <h2>Safety Official Authentication</h2>
-            <input type="password" id="access-key" placeholder="Enter Safety Key" />
-            <button id="unlock-btn">Unlock</button>
+            <h2>Safety official authentication</h2>
+            <form id="auth-form">
+                <input type="password" id="access-key" placeholder="Enter access Key" />
+                <button id="unlock-btn" class="button1" type="submit">Unlock</button>
+            </form>
             <p id="error-message" class="error"></p>
         </div>
     </div>
 
-    <!-- Race Control Panel (hidden until authenticated) -->
-    <div id="race-panel" hidden>
-
+    <!-- Race Control Panel -->
+    <div id="race-panel" style="display:none;">
         <h2>Race Control</h2>
 
-        <div id="race-status">Mode: DANGER</div>
+        <div id="race-status">Mode: ---</div>
 
         <button id="start" class="button1">Start Race</button>
 
         <div class="mode-buttons">
-
             <button id="safe" class="button1 safe">SAFE</button>
             <button id="hazard" class="button1 hazard">HAZARD</button>
             <button id="danger" class="button1 danger">DANGER</button>
             <button id="finish" class="button1 finish">FINISH</button>
-
         </div>
 
         <button id="end-session" class="button1">End Session</button>
-
     </div>
 
     <script src="/socket.io/socket.io.js"></script>

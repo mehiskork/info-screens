@@ -1,55 +1,68 @@
 const socket = io()
-
 const screen = document.getElementById("screen")
 
-socket.on("state:update", (state) => {
+let lastUpdate = Date.now()
 
-    const mode = state.raceMode
+// FULLSCREEN
+document.getElementById("fullscreen").onclick = () => {
+    if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen()
+    } else {
+        document.exitFullscreen()
+    }
+}
 
-    screen.style.animation = ""
+// SINGLE STATE HANDLER
+function handleState(state) {
+    lastUpdate = Date.now()
 
-    if (mode === "SAFE") {
+    const race = state.raceStatus || state.race || state
+    const modeRaw = race.mode || state.raceMode || ""
+    const mode = modeRaw.toLowerCase()
 
-        screen.style.background =
-            "repeating-linear-gradient(45deg, #008000 0px, #008000 40px, #00cc00 40px, #00cc00 80px)"
+    renderMode(mode)
+}
 
-        screen.style.color = "white"
-        screen.innerText = "SAFE"
+// NEW EVENTS
+socket.on("race:statusSnapshot", handleState)
+socket.on("race:status", handleState)
+socket.on("race:modeChanged", handleState)
 
-        screen.style.animation = "moveFlag 6s linear infinite"
+// fallback
+socket.on("state:update", handleState)
+
+// RENDER
+function renderMode(mode) {
+
+    screen.style.background = ""
+    screen.style.color = "white"
+    screen.style.textShadow = "none"
+    screen.style.fontWeight = "normal"
+
+    if (mode === "safe") {
+        screen.style.background = "green"
     }
 
-    if (mode === "HAZARD") {
-
-        screen.style.background =
-            "repeating-linear-gradient(45deg, yellow 0px, yellow 40px, orange 40px, orange 80px)"
-
+    else if (mode === "hazard") {
+        screen.style.background = "yellow"
         screen.style.color = "black"
-        screen.innerText = "HAZARD"
-
-        screen.style.animation = "flash 1s infinite"
     }
 
-    if (mode === "DANGER") {
+    else if (mode === "danger") {
+        screen.style.background = "red"
+    }
 
+    else if (mode === "finish") {
         screen.style.background =
-            "repeating-linear-gradient(45deg, red 0px, red 40px, darkred 40px, darkred 80px)"
+            "repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 400px 400px "
 
-        screen.style.color = "white"
-        screen.innerText = "DANGER"
-
-        screen.style.animation = "flash 1s infinite"
     }
+}
 
-    if (mode === "FINISH") {
 
-        screen.style.background =
-            "repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 120px 120px"
 
-        screen.style.color = "red"
-        screen.innerText = "FINISH"
-        screen.style.fontWeight = "bold"
-        screen.style.textShadow = "4px 4px 10px black"
+setInterval(() => {
+    if (Date.now() - lastUpdate > 1500000) {
+        showNoSignal()
     }
-
-})
+}, 1000)

@@ -13,7 +13,19 @@ const state = {
   },
   
   // For "see last race" requirement
-  lastFinishedRace: null  // copy of finished race data
+  lastFinishedRace: null,  // copy of finished race data
+  
+  // For paddock flow - session finished but not yet ended by Safety Official
+  endedSession: null  // session waiting for drivers to proceed to paddock
+}
+
+function resetCurrentRace() {
+  state.currentRace = {
+    sessionId: null,
+    mode: 'danger',
+    startTime: null,
+    laps: {}
+  }
 }
 
 // ============ SESSION MANAGEMENT ============
@@ -131,6 +143,13 @@ function addDriver(sessionId, driverName, carNumber) {
  * Returns null if no sessions exist
  */
 function getNextRaceSession() {
+  // If there's an ended session waiting for paddock, show it with paddock state
+  if (state.endedSession !== null) {
+    const session = JSON.parse(JSON.stringify(state.endedSession))
+    sortDriversByCarNumber(session.drivers)
+    return { success: true, state: 'paddock', data: session }
+  }
+  
   // If no race is active, return the first queued session
   if (state.currentRace.sessionId === null) {
     if (state.sessions.length === 0) {
@@ -138,7 +157,7 @@ function getNextRaceSession() {
     }
     const session = JSON.parse(JSON.stringify(state.sessions[0]))
     sortDriversByCarNumber(session.drivers)
-    return { success: true, data: session }
+    return { success: true, state: 'upcoming', data: session }
   }
   
   // If a race is active, find the next queued session after it
@@ -151,7 +170,7 @@ function getNextRaceSession() {
     }
     const session = JSON.parse(JSON.stringify(state.sessions[0]))
     sortDriversByCarNumber(session.drivers)
-    return { success: true, data: session }
+    return { success: true, state: 'upcoming', data: session }
   }
   
   // Return the next session after the active one
@@ -162,7 +181,7 @@ function getNextRaceSession() {
   
   const session = JSON.parse(JSON.stringify(state.sessions[nextIndex]))
   sortDriversByCarNumber(session.drivers)
-  return { success: true, data: session }
+  return { success: true, state: 'upcoming', data: session }
 }
 
 /**
@@ -298,6 +317,9 @@ function startRace(sessionId) {
     return { success: false, error: 'A race is already in progress' }
   }
   
+  // Clear ended session when starting new race (paddock flow complete)
+  state.endedSession = null
+  
   // Initialize lap tracking for each car
   const laps = {}
   for (const driver of session.drivers) {
@@ -323,8 +345,8 @@ function startRace(sessionId) {
 
 /**
  * Change race mode
- * Valid modes: 'safe', 'racing', 'paused', 'finished'
- * If mode is 'finished', the race ends and moves to lastFinishedRace
+ * Valid modes: 'safe', 'hazard', 'danger', 'finish'
+ * If mode is 'finish', race remains active until endSession()
  */
 function changeRaceMode(mode) {
   // Check if a race is active
@@ -333,38 +355,67 @@ function changeRaceMode(mode) {
   }
   
   // Validate mode
-  const validModes = ['safe', 'racing', 'paused', 'finished']
+  const validModes = ['safe', 'hazard', 'danger', 'finish']
   if (!validModes.includes(mode)) {
-    return { success: false, error: 'Invalid mode. Must be: safe, racing, paused, or finished' }
+    return { success: false, error: 'Invalid mode. Must be: safe, hazard, danger, or finish' }
+  }
+
+  // Once race is in finish mode, mode can no longer transition.
+  if (state.currentRace.mode === 'finish' && mode !== 'finish') {
+    return { success: false, error: 'Race is already in finish mode and cannot change mode' }
+  }
+
+  if (state.currentRace.mode === 'finish' && mode === 'finish') {
+    return { success: true, mode: state.currentRace.mode, message: 'Race is already in finish mode' }
   }
   
-  // If finishing the race, move it to lastFinishedRace and reset currentRace
-  if (mode === 'finished') {
-    state.currentRace.mode = 'finished'
+  // Enter finish mode. Session remains active until endSession() is called.
+  if (mode === 'finish') {
+    state.currentRace.mode = 'finish'
     state.lastFinishedRace = JSON.parse(JSON.stringify(state.currentRace))
-    
-    // Remove the finished session from the queue
-    const sessionId = state.currentRace.sessionId
-    const index = state.sessions.findIndex(s => s.id === sessionId)
-    if (index !== -1) {
-      state.sessions.splice(index, 1)
-    }
-    
-    // Reset current race
-    state.currentRace = {
-      sessionId: null,
-      mode: null,
-      startTime: null,
-      laps: {}
-    }
-    
-    return { success: true, message: 'Race finished and session removed from queue' }
+
+    return { success: true, mode: state.currentRace.mode, message: 'Race finished - wait for session end confirmation' }
   }
   
   // Update mode for non-finished states
   state.currentRace.mode = mode
   
   return { success: true, mode: state.currentRace.mode }
+}
+
+/**
+ * End the race session after cars have returned to pit lane
+ * Called by Safety Official to finalize a race in finish mode.
+ */
+function endSession() {
+  // Race must still be active.
+  if (state.currentRace.sessionId === null) {
+    return { success: false, error: 'No active race to end' }
+  }
+
+  // Session can only be ended from finish mode.
+  if (state.currentRace.mode !== 'finish') {
+    return { success: false, error: 'Race must be in finish mode before ending session' }
+  }
+
+  const sessionId = state.currentRace.sessionId
+  const index = state.sessions.findIndex(s => s.id === sessionId)
+
+  if (index !== -1) {
+    state.endedSession = JSON.parse(JSON.stringify(state.sessions[index]))
+    state.sessions.splice(index, 1)
+  } else {
+    // Fallback to current race snapshot if queued session was already removed.
+    state.endedSession = {
+      id: sessionId,
+      drivers: JSON.parse(JSON.stringify(state.currentRace.drivers || []))
+    }
+  }
+
+  state.lastFinishedRace = JSON.parse(JSON.stringify(state.currentRace))
+  resetCurrentRace()
+
+  return { success: true, message: 'Session ended - next session ready' }
 }
 
 /**
@@ -390,6 +441,51 @@ function getCurrentRaceStatus() {
       totalDuration: RACE_DURATION
     }
   }
+}
+
+/**
+ * Get last finished race snapshot.
+ */
+function getLastFinishedRace() {
+  if (state.lastFinishedRace === null) {
+    return { success: false, error: 'No finished race available' }
+  }
+
+  return {
+    success: true,
+    race: JSON.parse(JSON.stringify(state.lastFinishedRace))
+  }
+}
+
+function buildLeaderboardFromRace(race) {
+  if (!race || !race.drivers || !race.laps) {
+    return null
+  }
+
+  const leaderboard = race.drivers.map(driver => {
+    const lapData = race.laps[driver.carNumber] || {
+      bestTime: null,
+      currentLap: 0,
+      lapTimes: []
+    }
+
+    return {
+      name: driver.name,
+      carNumber: driver.carNumber,
+      bestTime: lapData.bestTime,
+      currentLap: lapData.currentLap,
+      lapTimes: lapData.lapTimes.length
+    }
+  })
+
+  leaderboard.sort((a, b) => {
+    if (a.bestTime === null && b.bestTime === null) return 0
+    if (a.bestTime === null) return 1
+    if (b.bestTime === null) return -1
+    return a.bestTime - b.bestTime
+  })
+
+  return leaderboard
 }
 
 /**
@@ -446,34 +542,24 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
  * Returns drivers sorted by fastest lap (fastest first)
  */
 function getLeaderboard() {
-  // Check if a race is active
-  if (state.currentRace.sessionId === null) {
-    return { success: false, error: 'No active race' }
+  const hasActiveRace = state.currentRace.sessionId !== null
+  const sourceRace = hasActiveRace ? state.currentRace : state.lastFinishedRace
+
+  if (!sourceRace) {
+    return { success: false, error: 'No active or finished race available' }
   }
-  
-  // Build leaderboard with driver and lap data
-  const leaderboard = state.currentRace.drivers.map(driver => {
-    const lapData = state.currentRace.laps[driver.carNumber]
-    return {
-      name: driver.name,
-      carNumber: driver.carNumber,
-      bestTime: lapData.bestTime,
-      currentLap: lapData.currentLap,
-      lapTimes: lapData.lapTimes.length
-    }
-  })
-  
-  // Sort by best time (fastest first, drivers with no time go last)
-  leaderboard.sort((a, b) => {
-    if (a.bestTime === null && b.bestTime === null) return 0
-    if (a.bestTime === null) return 1
-    if (b.bestTime === null) return -1
-    return a.bestTime - b.bestTime
-  })
+
+  const leaderboard = buildLeaderboardFromRace(sourceRace)
+  if (!leaderboard) {
+    return { success: false, error: 'Race data is incomplete' }
+  }
   
   return {
     success: true,
-    leaderboard: leaderboard
+    source: hasActiveRace ? 'active' : 'lastFinished',
+    sessionId: sourceRace.sessionId,
+    raceMode: sourceRace.mode,
+    leaderboard
   }
 }
 
@@ -491,7 +577,9 @@ module.exports = {
   authenticateObserver,
   startRace,
   changeRaceMode,
+  endSession,
   getCurrentRaceStatus,
+  getLastFinishedRace,
   recordLapCrossing,
   getLeaderboard
 }

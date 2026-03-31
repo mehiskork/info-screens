@@ -4,32 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <title>Race Countdown</title>
-
-    <style>
-        body {
-            background: black;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            font-size: 120px;
-            font-family: Arial;
-        }
-    </style>
+    <link rel="stylesheet" href="/frontend/race-countdown/race-countdown.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@700&display=swap" rel="stylesheet">
 
 </head>
 
 <body>
 
-    <div id="timer">00:00</div>
+    <div id="timer">00:00:00</div>
 
-    <button id="fullscreen" style="position:absolute;top:20px;right:20px;">
-        Fullscreen
-    </button>
+    <button id="fullscreen-btn">⛶ Full Screen</button>
 
     <script src="/socket.io/socket.io.js"></script>
-    <script src="/frontend/race-control/race-countdown.js"></script>
+    <script src="/frontend/race-countdown/race-countdown.js"></script>
 
 </body>
 

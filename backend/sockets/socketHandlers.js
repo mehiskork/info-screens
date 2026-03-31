@@ -16,10 +16,116 @@ const {
   getNextRaceSession,
   startRace,
   changeRaceMode,
+  endSession,
   getCurrentRaceStatus,
+  getLastFinishedRace,
   recordLapCrossing,
   getLeaderboard
 } = require('../state/raceState')
+
+const RACE_TICK_MS = 1000
+let raceTickHandle = null
+
+const ROLE = {
+  PUBLIC: 'public',
+  RECEPTIONIST: 'receptionist',
+  SAFETY: 'safety',
+  OBSERVER: 'observer'
+}
+
+function setSocketRole(socket, role) {
+  socket.data.role = role
+}
+
+function isAuthorized(socket, requiredRole) {
+  return socket.data.role === requiredRole
+}
+
+function rejectUnauthorized(callback, requiredRole) {
+  if (typeof callback === 'function') {
+    callback({
+      success: false,
+      error: `Unauthorized. ${requiredRole} role required.`
+    })
+  }
+}
+
+async function authenticateRole(role, accessKey) {
+  if (role === ROLE.RECEPTIONIST) {
+    return authenticateReceptionist(accessKey)
+  }
+
+  if (role === ROLE.SAFETY) {
+    return authenticateSafety(accessKey)
+  }
+
+  if (role === ROLE.OBSERVER) {
+    return authenticateObserver(accessKey)
+  }
+
+  return { success: false, error: 'Invalid role' }
+}
+
+function emitLeaderboardUpdated(io) {
+  const leaderboardResult = getLeaderboard()
+  if (leaderboardResult.success) {
+    io.emit('leaderboard:updated', {
+      leaderboard: leaderboardResult.leaderboard
+    })
+  }
+}
+
+function getLifecyclePayload() {
+  const raceStatus = getCurrentRaceStatus()
+  const leaderboard = getLeaderboard()
+  const lastFinishedRace = getLastFinishedRace()
+
+  return {
+    hasActiveRace: raceStatus.success,
+    raceStatus: raceStatus.success ? raceStatus.race : null,
+    leaderboard: leaderboard.success ? leaderboard : null,
+    lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null
+  }
+}
+
+function emitLifecycle(io) {
+  io.emit('race:lifecycle', getLifecyclePayload())
+}
+
+function emitRaceStatus(io) {
+  const result = getCurrentRaceStatus()
+  const lastFinishedRace = getLastFinishedRace()
+
+  if (!result.success) {
+    io.emit('race:status', {
+      active: false,
+      mode: 'danger',
+      timer: { running: false },
+      lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null
+    })
+    emitLifecycle(io)
+    return
+  }
+
+  const race = result.race
+  io.emit('race:status', {
+    active: true,
+    sessionId: race.sessionId,
+    mode: race.mode,
+    secondsRemaining: race.secondsRemaining,
+    totalDuration: race.totalDuration,
+    startTime: race.startTime,
+    lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null
+  })
+
+  emitLifecycle(io)
+}
+
+function emitRaceSnapshot(socket) {
+  socket.emit('race:statusSnapshot', {
+    ...getLifecyclePayload()
+  })
+}
 
 /**
  * Broadcast current race state to all connected clients
@@ -30,45 +136,102 @@ function broadcastState(io) {
 
   if (!result.success) {
     io.emit("state:update", {
-      raceMode: "danger",
-      timer: { running: false }
+      raceMode: "DANGER",
+      timer: { running: false },
+      hasActiveRace: false
     })
+    emitRaceStatus(io)
     return
   }
   
   const race = result.race
   console.log("BROADCAST:", race.mode)
 
-  io.emit("state:update", {
-    raceMode: race.mode,
-    timer: {
-      running: race.mode !== "finished",
-      endsAt: race.startTime + result.race.totalDuration * 1000
-    }
-  })
-
   const now = Date.now()
 
-  if (race.startTime && now >= race.startTime + result.race.totalDuration * 1000) {
-    changeRaceMode("finished")
+  if (race.mode !== 'finish' && race.startTime && now >= race.startTime + result.race.totalDuration * 1000) {
+    const finishResult = changeRaceMode('finish')
+    if (finishResult.success) {
+      io.emit('race:modeChanged', { mode: 'finish' })
+      io.emit('race:finished', { sessionId: race.sessionId, reason: 'timer-expired' })
+    }
   }
+
+  const updatedStatus = getCurrentRaceStatus()
+  if (updatedStatus.success) {
+    io.emit("state:update", {
+      raceMode: updatedStatus.race.mode.toUpperCase(),
+      timer: {
+        running: updatedStatus.race.mode !== "finish",
+        endsAt: updatedStatus.race.startTime + updatedStatus.race.totalDuration * 1000
+      },
+      hasActiveRace: true,
+      sessionId: updatedStatus.race.sessionId
+    })
+  }
+
+  emitRaceStatus(io)
+  emitLeaderboardUpdated(io)
+}
+
+function startRaceLifecycleTick(io) {
+  if (raceTickHandle) {
+    return
+  }
+
+  raceTickHandle = setInterval(() => {
+    broadcastState(io)
+  }, RACE_TICK_MS)
 }
 
 /**
  * Initialize Socket.IO event handlers
  */
 function initializeSocketHandlers(io) {
+  startRaceLifecycleTick(io)
+
+  io.use(async (socket, next) => {
+    const auth = socket.handshake.auth || {}
+    const role = typeof auth.role === 'string' ? auth.role.toLowerCase() : null
+    const accessKey = typeof auth.accessKey === 'string' ? auth.accessKey : null
+
+    // Spectator/public connections can connect without credentials.
+    if (!role && !accessKey) {
+      setSocketRole(socket, ROLE.PUBLIC)
+      return next()
+    }
+
+    if (!role || !accessKey) {
+      return next(new Error('Invalid auth payload. role and accessKey are required.'))
+    }
+
+    const result = await authenticateRole(role, accessKey)
+    if (!result.success) {
+      return next(new Error(result.error || 'Unauthorized'))
+    }
+
+    setSocketRole(socket, role)
+    return next()
+  })
+
   io.on('connection', (socket) => {
-    console.log('Client connected:', socket.id)
+    console.log('Client connected:', socket.id, 'role:', socket.data.role)
+    emitRaceSnapshot(socket)
     
     // Get all sessions
     socket.on('getSessions', (callback) => {
+      if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
+        return rejectUnauthorized(callback, ROLE.RECEPTIONIST)
+      }
       const sessions = getAllSessions()
       callback({ success: true, sessions })
     })
     
     // Add a new session
     socket.on('session:add', (callback) => {
+      if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
+        return rejectUnauthorized(callback, ROLE.RECEPTIONIST)
+      }
       const newSession = addSession()
       callback({ success: true, session: newSession })
       // Broadcast that the next race queue has changed
@@ -77,6 +240,9 @@ function initializeSocketHandlers(io) {
     
     // Add a driver to a session
     socket.on('driver:add', (data, callback) => {
+      if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
+        return rejectUnauthorized(callback, ROLE.RECEPTIONIST)
+      }
       const { sessionId, driverName, carNumber } = data
       const result = addDriver(sessionId, driverName, carNumber)
       callback(result)
@@ -88,6 +254,9 @@ function initializeSocketHandlers(io) {
     
     // Remove a session
     socket.on('session:remove', (data, callback) => {
+      if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
+        return rejectUnauthorized(callback, ROLE.RECEPTIONIST)
+      }
       const { sessionId } = data
       const result = removeSession(sessionId)
       callback(result)
@@ -99,6 +268,9 @@ function initializeSocketHandlers(io) {
     
     // Remove a driver from a session
     socket.on('driver:remove', (data, callback) => {
+      if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
+        return rejectUnauthorized(callback, ROLE.RECEPTIONIST)
+      }
       const { sessionId, driverName } = data
       const result = removeDriver(sessionId, driverName)
       callback(result)
@@ -110,6 +282,9 @@ function initializeSocketHandlers(io) {
     
     // Update a driver in a session
     socket.on('driver:update', (data, callback) => {
+      if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
+        return rejectUnauthorized(callback, ROLE.RECEPTIONIST)
+      }
       const { sessionId, carNumber, newDriverName } = data
       const result = updateDriver(sessionId, carNumber, newDriverName)
       callback(result)
@@ -120,24 +295,39 @@ function initializeSocketHandlers(io) {
     })
     
     // Authenticate receptionist
-    socket.on('auth:receptionist', async (data, callback) => {
-      const { accessKey } = data
-      const result = await authenticateReceptionist(accessKey)
-      callback(result)
+    socket.on('auth:receptionist', (data, callback) => {
+      if (typeof callback !== 'function') {
+        return
+      }
+
+      callback({
+        success: false,
+        error: 'Deprecated. Authenticate in Socket.IO handshake via auth.role and auth.accessKey.'
+      })
     })
     
     // Authenticate safety official
-    socket.on('auth:safety', async (data, callback) => {
-      const { accessKey } = data
-      const result = await authenticateSafety(accessKey)
-      callback(result)
+    socket.on('auth:safety', (data, callback) => {
+      if (typeof callback !== 'function') {
+        return
+      }
+
+      callback({
+        success: false,
+        error: 'Deprecated. Authenticate in Socket.IO handshake via auth.role and auth.accessKey.'
+      })
     })
     
     // Authenticate lap-line observer
-    socket.on('auth:observer', async (data, callback) => {
-      const { accessKey } = data
-      const result = await authenticateObserver(accessKey)
-      callback(result)
+    socket.on('auth:observer', (data, callback) => {
+      if (typeof callback !== 'function') {
+        return
+      }
+
+      callback({
+        success: false,
+        error: 'Deprecated. Authenticate in Socket.IO handshake via auth.role and auth.accessKey.'
+      })
     })
     
     // Get the next race session
@@ -147,28 +337,150 @@ function initializeSocketHandlers(io) {
     })
     
     // Start a race
-    socket.on('race:start', (data, callback) => {
-      const { sessionId } = data
+    socket.on('race:start', (data, callbackParam) => {
+      const callback = typeof callbackParam === 'function'
+        ? callbackParam
+        : (typeof data === 'function' ? data : undefined)
+
+      if (!isAuthorized(socket, ROLE.SAFETY)) {
+        return rejectUnauthorized(callback, ROLE.SAFETY)
+      }
+
+      // Handle both old format (no data) and new format (with sessionId)
+      let sessionId = null
+      let raceStartCallback = callback || (() => {})
+      
+      // If data is a function, it's the callback (old format with no sessionId)
+      if (typeof data === 'function') {
+        raceStartCallback = data
+        // Auto-select first session if no sessionId provided
+        const sessions = getAllSessions()
+        if (sessions.length > 0) {
+          sessionId = sessions[0].id
+        } else {
+          return raceStartCallback({ success: false, error: 'No sessions available to start' })
+        }
+      } else if (data && data.sessionId) {
+        sessionId = data.sessionId
+      } else {
+        // No sessionId provided, auto-select first
+        const sessions = getAllSessions()
+        if (sessions.length > 0) {
+          sessionId = sessions[0].id
+        } else {
+          return raceStartCallback({ success: false, error: 'No sessions available to start' })
+        }
+      }
+      
       const result = startRace(sessionId)
-      callback(result)
+      raceStartCallback(result)
       // Broadcast if race started successfully (next race in queue changes)
       if (result.success) {
         io.emit('race:started', { sessionId })
+        io.emit('race:modeChanged', { mode: 'safe' })
         io.emit('nextRace:changed')
         broadcastState(io)
       }
     })
     
-    // Change race mode
+    // Change race mode (accepts both race:changeMode and race:mode:set for compatibility)
     socket.on('race:changeMode', (data = {}, callback = () => {}) => {
+      if (!isAuthorized(socket, ROLE.SAFETY)) {
+        return rejectUnauthorized(callback, ROLE.SAFETY)
+      }
+
       if (!data.mode) {
         return callback({ success: false, error: 'Mode required' })
       }
       
-      const { mode } = data
+      // Convert mode to lowercase for internal use
+      const mode = data.mode.toLowerCase()
       const result = changeRaceMode(mode)
       
       if (result.success) {
+        io.emit('race:modeChanged', { mode })
+        if (mode === 'finish') {
+          const raceStatus = getCurrentRaceStatus()
+          io.emit('race:finished', {
+            sessionId: raceStatus.success ? raceStatus.race.sessionId : null,
+            reason: 'manual'
+          })
+        }
+        broadcastState(io)
+      }
+      
+      callback(result)
+    })
+    
+    // Legacy event name support (race:mode:set) - frontend uses this
+    socket.on('race:mode:set', (mode, callback = () => {}) => {
+      if (!isAuthorized(socket, ROLE.SAFETY)) {
+        return rejectUnauthorized(callback, ROLE.SAFETY)
+      }
+
+      if (!mode) {
+        return callback({ success: false, error: 'Mode required' })
+      }
+      
+      // Convert mode to lowercase for internal use
+      const modeLower = mode.toLowerCase()
+      const result = changeRaceMode(modeLower)
+      
+      if (result.success) {
+        io.emit('race:modeChanged', { mode: modeLower })
+        if (modeLower === 'finish') {
+          const raceStatus = getCurrentRaceStatus()
+          io.emit('race:finished', {
+            sessionId: raceStatus.success ? raceStatus.race.sessionId : null,
+            reason: 'manual'
+          })
+        }
+        broadcastState(io)
+      }
+      
+      callback(result)
+    })
+    
+    // End race session (after cars return to pit lane)
+    socket.on('session:end', (callback = () => {}) => {
+      if (!isAuthorized(socket, ROLE.SAFETY)) {
+        return rejectUnauthorized(callback, ROLE.SAFETY)
+      }
+
+      const raceStatusBeforeEnd = getCurrentRaceStatus()
+      const endedSessionId = raceStatusBeforeEnd.success ? raceStatusBeforeEnd.race.sessionId : null
+      const result = endSession()
+      
+      if (result.success) {
+        io.emit('race:sessionEnded', {
+          sessionId: endedSessionId,
+          endedAt: Date.now(),
+          source: 'session:end'
+        })
+        io.emit('nextRace:changed')
+        broadcastState(io)
+      }
+      
+      callback(result)
+    })
+    
+    // Legacy event name support (race:endSession) - frontend uses this
+    socket.on('race:endSession', (callback = () => {}) => {
+      if (!isAuthorized(socket, ROLE.SAFETY)) {
+        return rejectUnauthorized(callback, ROLE.SAFETY)
+      }
+
+      const raceStatusBeforeEnd = getCurrentRaceStatus()
+      const endedSessionId = raceStatusBeforeEnd.success ? raceStatusBeforeEnd.race.sessionId : null
+      const result = endSession()
+      
+      if (result.success) {
+        io.emit('race:sessionEnded', {
+          sessionId: endedSessionId,
+          endedAt: Date.now(),
+          source: 'race:endSession'
+        })
+        io.emit('nextRace:changed')
         broadcastState(io)
       }
       
@@ -180,12 +492,32 @@ function initializeSocketHandlers(io) {
       const result = getCurrentRaceStatus()
       callback(result)
     })
+
+    socket.on('getRaceLifecycle', (callback = () => {}) => {
+      callback({ success: true, ...getLifecyclePayload() })
+    })
     
     // Record lap crossing
     socket.on('lap:crossing', (data, callback) => {
+      if (!isAuthorized(socket, ROLE.OBSERVER)) {
+        return rejectUnauthorized(callback, ROLE.OBSERVER)
+      }
+
       const { carNumber, timestamp } = data
       const result = recordLapCrossing(carNumber, timestamp)
       callback(result)
+
+      if (result.success) {
+        io.emit('lap:recorded', {
+          carNumber,
+          timestamp: timestamp || Date.now(),
+          lap: result.lap,
+          lapTime: result.lapTime || null,
+          bestTime: result.bestTime || null
+        })
+        emitLeaderboardUpdated(io)
+        emitLifecycle(io)
+      }
     })
     
     // Get leaderboard

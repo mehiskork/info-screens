@@ -1,7 +1,15 @@
 // Test script for RT35: Manual car selection validation
 const io = require('socket.io-client')
 
-const socket = io('http://localhost:3000')
+const BASE_URL = process.env.SOCKET_URL || 'http://localhost:3000'
+const receptionistKey = process.env.RECEPTIONIST_KEY || 'receptionist123'
+
+const socket = io(BASE_URL, {
+  auth: {
+    role: 'receptionist',
+    accessKey: receptionistKey
+  }
+})
 
 let sessionId = null
 
@@ -129,17 +137,28 @@ function testAnotherSuccess() {
 
 function verifyFinalState() {
   console.log('9. Verifying final session state...')
-  socket.emit('getDrivers', { sessionId }, (response) => {
-    if (response.success && response.drivers.length === 2) {
+  socket.emit('getSessions', (response) => {
+    if (!response.success) {
+      console.error('✗ Failed to get sessions:', response)
+      process.exit(1)
+    }
+
+    const session = response.sessions.find(s => s.id === sessionId)
+    if (!session) {
+      console.error('✗ Session not found in getSessions response:', response.sessions)
+      process.exit(1)
+    }
+
+    if (session.drivers.length === 2) {
       console.log(`✓ Session has 2 drivers as expected:`)
-      response.drivers.forEach(d => {
+      session.drivers.forEach(d => {
         console.log(`  - ${d.name}: Car ${d.carNumber}`)
       })
       console.log('\n=== All RT35 Tests Passed! ===')
       socket.disconnect()
       process.exit(0)
     } else {
-      console.error('✗ Unexpected final state:', response)
+      console.error('✗ Unexpected final state:', session)
       process.exit(1)
     }
   })

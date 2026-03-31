@@ -23,27 +23,21 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 60px;
+    font-size: 16px;
     font-family: Arial;
     color: white;
     background: black;
     animation: moveFlag 4s linear infinite;
 }
 
-@keyframes moveFlag {
-    from {
-        background-position: 0 0;
-    }
 
-    to {
-        background-position: 200px 200px;
-    }
+#race-panel button {
+    align-self: center;
 }
 
-
-
 #race-panel {
-    width: 100%;
+    width: min(600px, calc(100vw - 32px));
+    margin: auto;
     max-width: 600px;
     padding: 32px;
     border: 1px solid var(--border);
@@ -76,12 +70,12 @@ body {
     color: white;
 
     font-family: "Segoe UI", Arial, sans-serif;
-    font-size: 35px;
+    font-size: clamp(16px, 2vw, 28px);
     font-weight: 700;
     letter-spacing: 2px;
 
     cursor: pointer;
-    padding: .75rem 1.2rem;
+    padding: clamp(10px, 2vw, 18px);
     transition: all .2s ease;
 }
 
@@ -112,7 +106,7 @@ body {
     color: red;
     background:
         repeating-conic-gradient(black 0% 25%,
-            white 0% 50%) 0 0 / 20px 20px;
+            white 0% 50%) 0 0 / 30px 30px;
 }
 
 
@@ -122,7 +116,7 @@ body {
 }
 
 #race-status {
-    font-size: 40px;
+    font-size: clamp(20px, 4vw, 40px);
     font-weight: bold;
     padding: 10px 20px;
     border-radius: 8px;
@@ -132,16 +126,31 @@ body {
 
 
 
-@media (max-width:600px) {
+@media (max-width: 600px) {
 
     #race-panel {
-        width: 90%;
+        width: 100%;
+        padding: 20px;
     }
 
     .mode-buttons {
         grid-template-columns: 1fr;
     }
 
+    .button1 {
+        width: 100%;
+    }
+}
+
+@media (min-width: 900px) {
+
+    #race-panel {
+        max-width: 700px;
+    }
+
+    .mode-buttons {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 /* Lock Screen Styles */
@@ -157,6 +166,13 @@ body {
     background: var(--background);
 }
 
+.lock-panel form {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
 .lock-panel {
     width: 100%;
     max-width: 400px;
@@ -165,14 +181,16 @@ body {
     border-radius: var(--radius);
     background: var(--card);
     color: var(--card-foreground);
-    
+
     display: flex;
     flex-direction: column;
     gap: 20px;
-    align-items: center;
+    align-items: stretch;
 }
 
 .lock-panel h2 {
+    text-align: center;
+    width: 100%;
     margin: 0;
     font-size: 32px;
     letter-spacing: 2px;
@@ -180,16 +198,23 @@ body {
 
 .lock-panel input {
     width: 100%;
+    height: 52px;
     padding: 12px;
     font-size: 18px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--input-background);
     color: var(--foreground);
+    box-sizing: border-box;
 }
 
 .lock-panel button {
     width: 100%;
+    height: 52px;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: clamp(16px, 2vw, 24px);
+    box-sizing: border-box;
 }
 
 .error {
