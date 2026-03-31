@@ -12,15 +12,7 @@ body:hover #fullscreen-btn {
     opacity: 1;
 }
 
-.fullscreen-mode .countdown {
-    font-size: 30vw;
-}
 
-.countdown {
-    font-size: clamp(80px, 25vw, 300px);
-    font-weight: bold;
-    text-align: center;
-}
 
 .fullscreen-mode {
     cursor: none;
@@ -34,12 +26,35 @@ body {
 }
 
 
-.center-wrapper {
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-
+html,
+body {
+    margin: 0;
+    padding: 0;
+    background: black;
+    height: 100%;
     width: 100%;
+    overflow: hidden;
+}
+
+#timer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    width: 100vw;
+    height: 100vh;
+
+    color: white;
+    font-weight: 700;
+
+    font-size: min(35vw, 35vh);
+
+    line-height: 1;
     text-align: center;
+
+    font-family: 'Roboto Mono', monospace;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum", "lnum";
+    transform: translateZ(0);
+    letter-spacing: 0.02em;
 }
