@@ -1,22 +1,21 @@
 const { RACE_DURATION, KEYS } = require('../config/settings')
+const {
+  loadPersistedRaceState,
+  savePersistedRaceState,
+  reconcileRaceStateOnStartup
+} = require('../persistence/localStateStore')
 
-const state = {
-  nextSessionId: 1,  // counter for generating IDs
-  
-  sessions: [], // start with empty sessions array
-  
-  currentRace: {
-    sessionId: null,
-    mode: 'danger',  // default safe state
-    startTime: null,
-    laps: {},    
-  },
-  
-  // For "see last race" requirement
-  lastFinishedRace: null,  // copy of finished race data
-  
-  // For paddock flow - session finished but not yet ended by Safety Official
-  endedSession: null  // session waiting for drivers to proceed to paddock
+// Hydrate in-memory state from local snapshot at process start.
+const state = loadPersistedRaceState()
+
+// If an active race expired while the server was down, normalize it to finish.
+if (reconcileRaceStateOnStartup(state, RACE_DURATION)) {
+  savePersistedRaceState(state)
+}
+
+// Persist the full state after each successful mutating operation.
+function persistState() {
+  savePersistedRaceState(state)
 }
 
 function resetCurrentRace() {
@@ -42,6 +41,7 @@ function addSession() {
   
   state.sessions.push(newSession)
   state.nextSessionId++
+  persistState()
   
   return { ...newSession }  // return a copy
 }
@@ -134,6 +134,7 @@ function addDriver(sessionId, driverName, carNumber) {
   // Add the driver with the specified car number
   const newDriver = { name: driverName, carNumber: carNum }
   session.drivers.push(newDriver)
+  persistState()
   
   return { success: true, driver: { ...newDriver } }
 }
@@ -194,6 +195,7 @@ function removeSession(sessionId) {
   }
   
   state.sessions.splice(index, 1)
+  persistState()
   return { success: true }
 }
 
@@ -212,6 +214,7 @@ function removeDriver(sessionId, driverName) {
   }
   
   session.drivers.splice(index, 1)
+  persistState()
   return { success: true }
 }
 
@@ -246,6 +249,7 @@ function updateDriver(sessionId, carNumber, newDriverName) {
   
   // Update the driver name
   driver.name = newDriverName
+  persistState()
   
   return { success: true, driver: { ...driver } }
 }
@@ -339,6 +343,7 @@ function startRace(sessionId) {
     startTime: Date.now(),
     laps: laps
   }
+  persistState()
   
   return { success: true, race: JSON.parse(JSON.stringify(state.currentRace)) }
 }
@@ -373,12 +378,14 @@ function changeRaceMode(mode) {
   if (mode === 'finish') {
     state.currentRace.mode = 'finish'
     state.lastFinishedRace = JSON.parse(JSON.stringify(state.currentRace))
+    persistState()
 
     return { success: true, mode: state.currentRace.mode, message: 'Race finished - wait for session end confirmation' }
   }
   
   // Update mode for non-finished states
   state.currentRace.mode = mode
+  persistState()
   
   return { success: true, mode: state.currentRace.mode }
 }
@@ -414,6 +421,7 @@ function endSession() {
 
   state.lastFinishedRace = JSON.parse(JSON.stringify(state.currentRace))
   resetCurrentRace()
+  persistState()
 
   return { success: true, message: 'Session ended - next session ready' }
 }
@@ -509,6 +517,7 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
   if (carLaps.lastCrossTime === null) {
     carLaps.lastCrossTime = timestamp
     carLaps.currentLap = 1
+    persistState()
     return { 
       success: true, 
       lap: 1,
@@ -528,6 +537,7 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
   if (carLaps.bestTime === null || lapTime < carLaps.bestTime) {
     carLaps.bestTime = lapTime
   }
+  persistState()
   
   return {
     success: true,

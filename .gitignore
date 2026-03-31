@@ -15,6 +15,9 @@ project_steps.md
 *.log
 npm-debug.log*
 
+# Local persistence snapshots
+backend/data/*.json
+
 # OS files
 .DS_Store
 Thumbs.db
