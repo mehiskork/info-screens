@@ -5,6 +5,7 @@ const path = require('path')
 
 const { PORT, IS_DEV } = require('./config/settings')
 const initializeSocketHandlers = require('./sockets/socketHandlers')
+const { getAllTimeLeaderboardTopTen } = require('./state/allTimeLapLeaderboard')
 
 console.log(`Running in ${IS_DEV ? 'development' : 'production'} mode`)
 
@@ -48,6 +49,24 @@ app.get('/lap-line-tracker', (req, res) => {
 
 app.get(['/leader-board', '/leader-board/'], (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/leaderboard/leaderboard-index.html'))
+})
+
+// Backend route for all-time best laps data (frontend view to be implemented separately).
+app.get('/api/leaderboard/all-time', (req, res) => {
+  const result = getAllTimeLeaderboardTopTen()
+  if (!result.success) {
+    return res.status(500).json({ success: false, error: 'Could not load all-time leaderboard' })
+  }
+
+  return res.json(result)
+})
+
+// Dedicated route placeholder for upcoming frontend all-time leaderboard screen.
+app.get('/all-time-best-laps', (req, res) => {
+  return res.status(501).json({
+    success: false,
+    message: 'Frontend view not implemented yet. Use /api/leaderboard/all-time.'
+  })
 })
 
 // Initialize Socket.IO event handlers
