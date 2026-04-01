@@ -326,7 +326,8 @@ function startRace(sessionId) {
       currentLap: 0,
       bestTime: null,
       lapTimes: [],
-      lastCrossTime: null
+      lastCrossTime: null,
+      finishLapCompleted: false
     }
   }
   
@@ -507,6 +508,25 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
   }
   
   const carLaps = state.currentRace.laps[carNumber]
+  const isFinishMode = state.currentRace.mode === 'finish'
+
+  // In finish mode, each car can complete only one final lap crossing.
+  if (isFinishMode && carLaps.finishLapCompleted) {
+    return { success: false, error: 'Final lap already completed for this car' }
+  }
+
+  // Finish mode permits one final button press even if no previous crossing exists.
+  if (isFinishMode && carLaps.lastCrossTime === null) {
+    carLaps.finishLapCompleted = true
+    persistState()
+
+    return {
+      success: true,
+      lap: carLaps.currentLap,
+      message: 'Final lap completion recorded - proceed to paddock',
+      finishLapCompleted: true
+    }
+  }
   
   // If this is the first crossing, just record the time
   if (carLaps.lastCrossTime === null) {
@@ -516,7 +536,8 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
     return { 
       success: true, 
       lap: 1,
-      message: 'First lap started'
+      message: 'First lap started',
+      finishLapCompleted: false
     }
   }
   
@@ -532,13 +553,19 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
   if (carLaps.bestTime === null || lapTime < carLaps.bestTime) {
     carLaps.bestTime = lapTime
   }
+
+  if (isFinishMode) {
+    carLaps.finishLapCompleted = true
+  }
+
   persistState()
   
   return {
     success: true,
     lap: carLaps.currentLap,
     lapTime: lapTime,
-    bestTime: carLaps.bestTime
+    bestTime: carLaps.bestTime,
+    finishLapCompleted: isFinishMode
   }
 }
 
