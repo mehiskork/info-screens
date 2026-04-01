@@ -27,8 +27,8 @@ function formatDriverName(name) {
 
 
 
-function attachQueueListenersOnce() {
-    if (!socket || queueListenerAttached) return;
+function attachQueueListeners() {
+    if (!socket) return;
 
     // when the backend emits nextRace:changed, run this function
     socket.on("nextRace:changed", () => {
@@ -36,7 +36,7 @@ function attachQueueListenersOnce() {
         loadSessions();
     });
 
-    queueListenerAttached = true;
+
 }
 
 
@@ -72,18 +72,29 @@ keyForm.addEventListener("submit", (e) => {
 
         // Attaches the nextRace:changed listener to this socket.
         // That listener keeps Front Desk updated when the queue changes elsewhere.
-        attachQueueListenersOnce();
+        attachQueueListeners();
         loadSessions();
 
     })
 
 
 
+
     socket.on("connect_error", (err) => {
+
         console.log("connect_error:", err.message);
-        errorMessage.textContent = err.message || "Invalid access key";
-        lockScreen.hidden = false;
-        frontDeskApp.hidden = true;
+
+        if (err.message === "xhr poll error") {
+            errorMessage.textContent = "Cannot connect to server";
+            return;
+        }
+
+        if (err.message === "Invalid access key") {
+            errorMessage.textContent = "Incorrect access key";
+            return;
+        }
+
+        errorMessage.textContent = "Connection failed. Please try again.";
     });
 
 
@@ -126,7 +137,7 @@ function renderSessions(sessions) {
       `;
         }).join("")}
          </div>
-            <input class="driver-name-input" maxlength="40" type="text" placeholder="Enter driver´s name" />
+            <input class="driver-name-input" maxlength="${MAX_DRIVER_NAME_LENGTH}" type="text" placeholder="Enter driver´s name" />
             <input class="car-number-input" type="hidden" value="" />
             <button type="submit">Add Driver</button>
             </form>
