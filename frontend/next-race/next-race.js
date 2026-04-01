@@ -28,16 +28,17 @@ function normalizeMode(mode) {
 
 function applyRacePayload(payload = {}) {
     const race = getRaceFromPayload(payload);
-
     currentMode = race.mode ?? currentMode;
 
-    if (typeof race.secondsRemaining === "number") {
+    const mode = String(currentMode || "").toLowerCase();
+    if (mode === "finish" || mode === "finished") {
+        secondsRemaining = 0;
+    } else if (typeof race.secondsRemaining === "number") {
         secondsRemaining = race.secondsRemaining;
     } else if (race.startTime != null && race.totalDuration != null) {
-        const startMs =
-            typeof race.startTime === "number"
-                ? race.startTime
-                : new Date(race.startTime).getTime();
+        const startMs = typeof race.startTime === "number"
+            ? race.startTime
+            : new Date(race.startTime).getTime();
 
         const endTime = startMs + race.totalDuration * 1000;
         secondsRemaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
@@ -57,7 +58,7 @@ function renderTimer() {
 
     const min = String(Math.floor(secondsRemaining / 60)).padStart(2, "0");
     const sec = String(secondsRemaining % 60).padStart(2, "0");
-    timerDisplay.textContent = `Timer: ${min}:${sec}`;
+    timerDisplay.textContent = `${min}:${sec}`;
 }
 
 setInterval(() => {
@@ -71,13 +72,10 @@ setInterval(() => {
 
 function renderFlag() {
     const mode = String(currentMode || "").toLowerCase();
-
-    flagStatus.textContent = `Flag: ${normalizeMode(mode)}`;
+    flagStatus.textContent = normalizeMode(mode).toUpperCase();
 
     flagStatus.style.background = "";
     flagStatus.style.color = "white";
-    flagStatus.style.textShadow = "none";
-    flagStatus.style.fontWeight = "600";
 
     if (mode === "safe") {
         flagStatus.style.background = "green";
@@ -88,43 +86,28 @@ function renderFlag() {
         flagStatus.style.background = "red";
     } else if (mode === "finish" || mode === "finished") {
         flagStatus.style.background =
-            "repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 80px 80px";
-        flagStatus.style.color = "black";
-    } else {
-        flagStatus.style.background = "";
-        flagStatus.style.color = "white";
+            "repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 20px 20px";
+        flagStatus.style.color = "red";
     }
 }
 
 
-// checks if fullscreen or not and names the button
 function updateFullscreenButton() {
-
-
-    if (document.fullscreenElement) {
-        fullScreenBtn.textContent = "Exit Fullscreen";
-    } else {
-        fullScreenBtn.textContent = "Fullscreen";
-    }
+    fullScreenBtn.hidden = !!document.fullscreenElement;
 }
+
+document.addEventListener("fullscreenchange", updateFullscreenButton);
+updateFullscreenButton();
 
 fullScreenBtn.addEventListener("click", async () => {
+    if (document.fullscreenElement) return;
+
     try {
-        if (!document.fullscreenElement) {
-            await document.documentElement.requestFullscreen();
-        } else {
-            await document.exitFullscreen();
-        }
+        await document.documentElement.requestFullscreen();
     } catch (err) {
         console.error("Fullscreen error:", err);
     }
 });
-
-//Whenever fullscreen state changes, update the button text. esc is used
-document.addEventListener("fullscreenchange", updateFullscreenButton);
-updateFullscreenButton();
-
-
 
 
 const socket = createSocket();

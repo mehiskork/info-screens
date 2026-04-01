@@ -19,6 +19,11 @@ body {
     background: var(--background);
     color: var(--foreground);
     font-family: Arial, sans-serif;
+
+}
+
+html:fullscreen {
+    overflow: hidden;
 }
 
 .screen {
@@ -40,43 +45,57 @@ body {
 }
 
 .button1 {
-    background-color: #111827;
-    border: 1px solid transparent;
+    background: var(--card);
+    border: 2px solid var(--border);
     border-radius: 12px;
-    color: #ffffff;
+    color: var(--foreground);
     cursor: pointer;
-    font-family: "Inter var", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    font-weight: 600;
+    font-family: Arial, sans-serif;
+    font-weight: 700;
     font-size: 1rem;
-    padding: .8rem 1.25rem;
-    transition: background-color .2s ease, transform .1s ease;
+    padding: 0.8rem 1.25rem;
+    transition: all 0.2s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .button1:hover {
-    background-color: #374151;
+    background: var(--muted);
+    border-color: var(--foreground);
 }
 
 .button1:active {
-    transform: translateY(1px);
+    transform: scale(0.97);
+    background: var(--foreground);
+    color: var(--background);
+}
+
+.button1:focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
 }
 
 .meta {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .meta-box {
     min-height: 52px;
     display: flex;
     align-items: center;
+    justify-content: center;
+    text-align: center;
     padding: 0 16px;
     border: 1px solid var(--border);
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.01);
     color: var(--foreground);
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: 0.04em;
 }
 
 .empty-state {
@@ -147,6 +166,27 @@ body {
     line-height: 1.3;
     font-weight: 500;
     color: var(--foreground);
+}
+
+#paddock-message {
+    margin: 5px 0 5px;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    animation: paddock-flicker 1s infinite alternate;
+}
+
+@keyframes paddock-flicker {
+    from {
+        color: white;
+
+    }
+
+    to {
+        color: #22c55e;
+
+    }
 }
 
 @media (max-width: 640px) {
