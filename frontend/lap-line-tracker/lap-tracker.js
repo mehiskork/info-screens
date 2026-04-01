@@ -13,6 +13,20 @@ const carButtonsContainer = document.getElementById("car-buttons")
 const trackerStateMessage = document.getElementById("tracker-state-message")
 const lapFeedback = document.getElementById("lap-feedback")
 
+function getConnectionErrorMessage(error, invalidKeyMessage) {
+    const message = String(error?.message || "").toLowerCase()
+
+    if (message === "unauthorized" || message === "invalid observer key" || message === "invalid access key") {
+        return invalidKeyMessage
+    }
+
+    if (message.includes("xhr poll error") || message.includes("websocket error") || message.includes("transport error")) {
+        return "Cannot connect to server"
+    }
+
+    return "Connection failed. Please try again."
+}
+
 function formatTime(ms) {
     if (ms === null || ms === undefined) return "—"
     return `${(ms / 1000).toFixed(2)}s`
@@ -142,7 +156,7 @@ function attachSocketHandlers(activeSocket) {
         unlockBtn.disabled = false
         lockScreen.hidden = false
         lapTrackerPanel.hidden = true
-        errorMessage.textContent = error?.message || "Invalid observer key"
+        errorMessage.textContent = getConnectionErrorMessage(error, "Invalid observer key")
     })
 
     activeSocket.on("disconnect", () => {
