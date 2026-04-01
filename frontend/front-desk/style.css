@@ -25,12 +25,21 @@ body {
 /* Lock screen */
 #lock-screen {
     width: min(420px, calc(100vw - 32px));
-    margin: 48px auto;
+    margin: 0;
     padding: 32px;
     border: 1px solid var(--border);
     border-radius: 22px;
     background: var(--card);
     color: var(--card-foreground);
+
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#lock-screen h1 {
+    text-align: center;
 }
 
 #key-form {
@@ -80,43 +89,77 @@ body {
     margin-bottom: 20px;
 }
 
-/* Shared button family */
+/* Shared action button style */
 .button1,
+#add-session-btn,
 .driver-form>button[type="submit"],
 .edit-driver-btn,
 .rmv-driver-btn,
 .save-driver-btn,
-.cancel-driver-btn {
-    background-color: #111827;
-    border: 1px solid transparent;
+.cancel-driver-btn,
+.rmv-session-btn {
+    background: var(--card);
+    border: 2px solid var(--border);
     border-radius: 12px;
-    color: #ffffff;
+    color: var(--foreground);
     cursor: pointer;
-    font-family: "Inter var", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-    font-weight: 600;
-    transition: background-color .2s ease, transform .1s ease;
-}
-
-.button1 {
-    font-size: 1.05rem;
-    line-height: 1.2;
-    padding: .8rem 1.25rem;
+    font-family: Arial, sans-serif;
+    font-weight: 700;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .button1:hover,
+#add-session-btn:hover,
+.driver-form>button[type="submit"]:hover,
 .edit-driver-btn:hover,
-.rmv-driver-btn:hover,
 .save-driver-btn:hover,
-.cancel-driver-btn:hover {
-    background-color: #374151;
+.cancel-driver-btn:hover,
+.rmv-driver-btn:hover {
+    background: var(--muted);
+    border-color: var(--foreground);
 }
 
 .button1:active,
+#add-session-btn:active,
+.driver-form>button[type="submit"]:active,
 .edit-driver-btn:active,
 .rmv-driver-btn:active,
 .save-driver-btn:active,
-.cancel-driver-btn:active {
-    transform: translateY(1px);
+.cancel-driver-btn:active,
+.rmv-session-btn:active {
+    transform: scale(0.97);
+}
+
+
+
+.rmv-session-btn {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+
+.rmv-session-btn:hover {
+    background: rgba(239, 68, 68, 0.12);
+    border-color: #ef4444;
+}
+
+/* Sizes */
+.button1,
+#add-session-btn,
+.driver-form>button[type="submit"] {
+    padding: 0.8rem 1.25rem;
+    font-size: 1rem;
+}
+
+.edit-driver-btn,
+.rmv-driver-btn,
+.save-driver-btn,
+.cancel-driver-btn {
+    min-height: 38px;
+    padding: 0.65rem 1rem;
+    font-size: 0.95rem;
 }
 
 /* Sessions list */
@@ -242,14 +285,6 @@ body {
     justify-self: end;
     align-self: center;
     font-size: 1rem;
-}
-
-.driver-form>button[type="submit"]:hover {
-    background-color: #374151;
-}
-
-.driver-form>button[type="submit"]:active {
-    transform: translateY(1px);
 }
 
 /* Car chips */
