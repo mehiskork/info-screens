@@ -144,12 +144,7 @@ function addDriver(sessionId, driverName, carNumber) {
  * Returns null if no sessions exist
  */
 function getNextRaceSession() {
-  // If there's an ended session waiting for paddock, show it with paddock state
-  if (state.endedSession !== null) {
-    const session = JSON.parse(JSON.stringify(state.endedSession))
-    sortDriversByCarNumber(session.drivers)
-    return { success: true, state: 'paddock', data: session }
-  }
+  const showPaddock = state.endedSession !== null
   
   // If no race is active, return the first queued session
   if (state.currentRace.sessionId === null) {
@@ -158,7 +153,7 @@ function getNextRaceSession() {
     }
     const session = JSON.parse(JSON.stringify(state.sessions[0]))
     sortDriversByCarNumber(session.drivers)
-    return { success: true, state: 'upcoming', data: session }
+    return { success: true, state: 'upcoming', paddock: showPaddock, data: session }
   }
   
   // If a race is active, find the next queued session after it
@@ -171,7 +166,7 @@ function getNextRaceSession() {
     }
     const session = JSON.parse(JSON.stringify(state.sessions[0]))
     sortDriversByCarNumber(session.drivers)
-    return { success: true, state: 'upcoming', data: session }
+    return { success: true, state: 'upcoming', paddock: showPaddock, data: session }
   }
   
   // Return the next session after the active one
@@ -182,7 +177,7 @@ function getNextRaceSession() {
   
   const session = JSON.parse(JSON.stringify(state.sessions[nextIndex]))
   sortDriversByCarNumber(session.drivers)
-  return { success: true, state: 'upcoming', data: session }
+  return { success: true, state: 'upcoming', paddock: showPaddock, data: session }
 }
 
 /**
