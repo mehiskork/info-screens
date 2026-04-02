@@ -6,25 +6,35 @@ document.addEventListener('DOMContentLoaded', () => {
     const flagStatus = document.getElementById('flag-status'); // Lipu staatus
     const timerDisplay = document.getElementById('timer-display'); // Taimeri kuvamine
     const fullscreenBtn = document.getElementById('fullscreen-btn'); // fullscreen nupp
-    const mainScreen = document.querySelector('.screen'); // põhivaade
+    const lapsHeader = document.querySelector('.leaderboard-table thead tr th:last-child'); // RT71: viide viimase veeru pealkirjale
 
     // MUUDATUS: sessiooni lõpp flag — hoiab meeles et sessioon on lõppenud
     let sessionEnded = false;
 
-    // FULLSCREEN funktsioon
-    if (fullscreenBtn && mainScreen) {
-        fullscreenBtn.addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                mainScreen.requestFullscreen().catch(err => { //lülitub täisekraanile
-                    console.error("Fullscreen error:", err);
-                });
-            } else { // väljub täisekraanist
-                document.exitFullscreen();
+    // FULLSCREEN funktsioon (RT71)
+    function updateFullscreenButton() {
+        if (document.fullscreenElement) {
+            fullscreenBtn.textContent = "Exit Fullscreen";
+        } else {
+            fullscreenBtn.textContent = "Fullscreen";
+        }
+    }
+
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener("click", async () => { // RT71: kogu lehekülg läheb fullscreen'i
+            try {
+                if (!document.fullscreenElement) {
+                    await document.documentElement.requestFullscreen();
+                } else {
+                    await document.exitFullscreen();
+                }
+            } catch (err) {
+                console.error("Fullscreen error:", err);
             }
         });
-        document.addEventListener('fullscreenchange', () => {
-            fullscreenBtn.innerText = document.fullscreenElement ? "Exit Fullscreen" : "Fullscreen";
-        });
+
+        document.addEventListener("fullscreenchange", updateFullscreenButton); // RT71: uuendab nupu teksti
+        updateFullscreenButton();
     }
     // live uuendused
     // setIntervall eemaldatud
@@ -33,8 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // edetabeli uuendused serverist
     socket.on('leaderboard:updated', (data) => {
         sessionEnded = false; // MUUDATUS: uus ralli algab, lähtesta sessionEnded
+        if (lapsHeader) lapsHeader.innerText = 'Current Lap'; // RT71: live ralli — veeru nimi "Current Lap"
         if (data.leaderboard && data.leaderboard.length > 0) {
-            renderLeaderboard(data.leaderboard); // kuvab edetabeli
+            renderLeaderboard(data.leaderboard, false); // false = RT71: live režiim
             emptyState.hidden = true;
             leaderboardCard.hidden = false; // näitab edetabelit
         } else {
@@ -93,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const race = data.raceStatus;
             const minutes = Math.floor(race.secondsRemaining / 60);
             const seconds = race.secondsRemaining % 60;
-            const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds} `;
+            const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
             timerDisplay.innerText = timeString;
             const mode = race.mode || 'waiting';
             flagStatus.innerText = mode.toUpperCase();
@@ -109,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data.raceStatus && !data.leaderboard && data.lastFinishedRace && data.lastFinishedRace.drivers) {
             const leaderboard = buildLeaderboardFromRaw(data.lastFinishedRace);
             if (leaderboard.length > 0) {
-                renderLeaderboard(leaderboard);
+                renderLeaderboard(leaderboard, true); // RT71: true = sessiooni lõpp režiim
                 emptyState.hidden = true;
                 leaderboardCard.hidden = false;
             } else {
@@ -124,9 +135,22 @@ document.addEventListener('DOMContentLoaded', () => {
     // ilma selleta jäi taimer käima peale End Session nupu vajutamist
     socket.on('race:sessionEnded', () => {
         sessionEnded = true; // MUUDATUS: märgib sessiooni lõppenuks
+        if (lapsHeader) lapsHeader.innerText = 'Laps'; // RT71: sessiooni lõpp — veeru nimi "Laps"
         timerDisplay.innerText = "--:--";
         flagStatus.innerText = "DANGER"; // punane danger lipp peale sessiooni lõppu ✅
         flagStatus.className = 'meta-box danger'; // punane taust ✅
+        // RT71: kuvab lõppenud ralli edetabeli sessiooni lõpp režiimis
+        const tbody = document.getElementById('leaderboard-data');
+        if (tbody) {
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => {
+                const lapsCell = row.querySelector('td:last-child');
+                if (lapsCell) {
+                    const currentLap = parseInt(lapsCell.innerText) || 0;
+                    lapsCell.innerText = Math.max(0, currentLap - 1); // RT71: lõpetatud ringid = currentLap - 1
+                }
+            });
+        }
     });
 
     // finish režiim, taimer läheb kohe nulli
@@ -175,9 +199,16 @@ function buildLeaderboardFromRaw(race) {
     return leaderboard;
 }
 // edetabeli kuvamine
-function renderLeaderboard(data) {
+// RT71: sessionEnded parameeter — true = sessiooni lõpp, false = live režiim
+function renderLeaderboard(data, sessionEnded = false) {
     const tbody = document.getElementById('leaderboard-data');
+    const lapsHeader = document.querySelector('.leaderboard-table thead tr th:last-child');
     if (!tbody) return;
+    // RT71: veeru pealkiri sõltub sessiooni olekust
+    if (lapsHeader) {
+        lapsHeader.innerText = sessionEnded ? 'Laps' : 'Current Lap';
+    }
+
 
     tbody.innerHTML = '';
     data.forEach((driver, index) => {
@@ -191,17 +222,23 @@ function renderLeaderboard(data) {
                 const seconds = Math.floor((ms % 60000) / 1000);
                 const milliseconds = ms % 1000;
                 return minutes > 0
-                    ? `${minutes}:${seconds < 10 ? '0' : ''}${seconds}.${String(milliseconds).padStart(3, '0')} `
+                    ? `${minutes}:${seconds < 10 ? '0' : ''}${seconds}.${String(milliseconds).padStart(3, '0')}`
                     : `${seconds}.${String(milliseconds).padStart(3, '0')}`;
             })()
             : '--:--';
+
+        // RT71: sessiooni lõpus kuva lõpetatud ringid (currentLap - 1), live režiimis currentLap
+        const lapsValue = sessionEnded
+            ? Math.max(0, (driver.currentLap || 0) - 1)
+            : (driver.currentLap || 0);
+
         // ridade lisamine tabelisse
         row.innerHTML = `
             <td>${index + 1}</td>
             <td>${driver.carNumber}</td>
             <td>${driver.name}</td>
             <td>${bestTimeStr}</td>
-            <td>${driver.currentLap || 0}</td>
+            <td>${lapsValue}</td>
             `;
         tbody.appendChild(row);
     });
