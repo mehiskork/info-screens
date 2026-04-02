@@ -149,7 +149,7 @@ function loadNextRace() {
             return;
         }
 
-        showState(response.state || "upcoming", response.data);
+        showState(response.state || "upcoming", response.data, Boolean(response.paddock));
     });
 }
 
@@ -174,10 +174,10 @@ function renderDriverRow(driver) {
     return row
 }
 
-function showUpcomingState(session) {
+function showUpcomingState(session, showPaddock = false) {
     emptyState.hidden = true;
     raceCard.hidden = false;
-    paddockMessage.hidden = true;
+    paddockMessage.hidden = !showPaddock;
 
     sessionTitle.textContent = `Session ${session.id}`;
     // clears the current contents of driversList
@@ -192,24 +192,11 @@ function showUpcomingState(session) {
     });
 }
 
-function showPaddockState(session) {
-    emptyState.hidden = true;
-    raceCard.hidden = false;
-    paddockMessage.hidden = false;
-
-    sessionTitle.textContent = `Session ${session.id}`;
-    driversList.innerHTML = "";
-
-    session.drivers.forEach((driver) => {
-        const row = renderDriverRow(driver);
-        driversList.appendChild(row);
-    });
-}
-
-function showState(state, session = null) {
+function showState(state, session = null, showPaddock = false) {
     if (state === "empty") return showEmptyState();
-    if (state === "upcoming" && session) return showUpcomingState(session);
-    if (state === "paddock" && session) return showPaddockState(session);
+    if (state === "upcoming" && session) return showUpcomingState(session, showPaddock);
+    // Legacy compatibility if backend still returns paddock state.
+    if (state === "paddock" && session) return showUpcomingState(session, true);
 
     showEmptyState();
 

@@ -1,6 +1,8 @@
 let socket = null
 let canTrackLaps = false
 let renderedCarsSignature = ""
+let finishCompletedCars = new Set()
+let currentCarNumbers = []
 
 const lockScreen = document.getElementById("lock-screen")
 const authForm = document.getElementById("auth-form")
@@ -12,6 +14,20 @@ const lapTrackerPanel = document.getElementById("lap-tracker-panel")
 const carButtonsContainer = document.getElementById("car-buttons")
 const trackerStateMessage = document.getElementById("tracker-state-message")
 const lapFeedback = document.getElementById("lap-feedback")
+
+function getConnectionErrorMessage(error, invalidKeyMessage) {
+    const message = String(error?.message || "").toLowerCase()
+
+    if (message === "unauthorized" || message === "invalid observer key" || message === "invalid access key") {
+        return invalidKeyMessage
+    }
+
+    if (message.includes("xhr poll error") || message.includes("websocket error") || message.includes("transport error")) {
+        return "Cannot connect to server"
+    }
+
+    return "Connection failed. Please try again."
+}
 
 function formatTime(ms) {
     if (ms === null || ms === undefined) return "—"
@@ -26,6 +42,10 @@ function setTrackerState(text, variant = "info") {
 function setLapFeedback(text, variant = "") {
     lapFeedback.textContent = text
     lapFeedback.className = variant
+}
+
+function isCarButtonDisabled(carNumber) {
+    return !canTrackLaps || finishCompletedCars.has(carNumber)
 }
 
 function renderCarButtons(carNumbers) {
@@ -45,10 +65,10 @@ function renderCarButtons(carNumbers) {
         button.className = "car-btn"
         button.dataset.car = String(carNumber)
         button.textContent = String(carNumber)
-        button.disabled = !canTrackLaps
+        button.disabled = isCarButtonDisabled(carNumber)
 
         button.addEventListener("click", () => {
-            if (!socket || !socket.connected || !canTrackLaps) {
+            if (!socket || !socket.connected || isCarButtonDisabled(carNumber)) {
                 return
             }
 
@@ -59,6 +79,11 @@ function renderCarButtons(carNumbers) {
                 if (!response || !response.success) {
                     setLapFeedback(response?.error || "Failed to record lap", "error")
                     return
+                }
+
+                if (response.finishLapCompleted) {
+                    finishCompletedCars.add(carNumber)
+                    syncCarButtons(currentCarNumbers)
                 }
 
                 if (response.message) {
@@ -88,8 +113,25 @@ function syncCarButtons(carNumbers) {
 
     // Keep disabled state in sync without rebuilding the grid each update tick.
     carButtonsContainer.querySelectorAll(".car-btn").forEach((button) => {
-        button.disabled = !canTrackLaps
+        const carNumber = Number(button.dataset.car)
+        button.disabled = isCarButtonDisabled(carNumber)
     })
+}
+
+function getFinishCompletedCarsFromRace(race) {
+    const completed = new Set()
+    const laps = race?.laps || {}
+
+    Object.keys(laps).forEach((carKey) => {
+        const carNumber = Number(carKey)
+        const lapInfo = laps[carKey]
+
+        if (Number.isInteger(carNumber) && lapInfo && lapInfo.finishLapCompleted === true) {
+            completed.add(carNumber)
+        }
+    })
+
+    return completed
 }
 
 function applyLifecycle(payload) {
@@ -98,6 +140,8 @@ function applyLifecycle(payload) {
 
     if (!hasActiveRace) {
         canTrackLaps = false
+        finishCompletedCars = new Set()
+        currentCarNumbers = []
         syncCarButtons([])
         if (payload?.lastFinishedRace) {
             setTrackerState("Session ended. Waiting for next race.", "warning")
@@ -113,11 +157,25 @@ function applyLifecycle(payload) {
         .filter((carNumber) => Number.isInteger(carNumber))
         .sort((a, b) => a - b)
 
+    currentCarNumbers = carNumbers
+
     canTrackLaps = true
+
+    if (mode === "finish") {
+        finishCompletedCars = getFinishCompletedCarsFromRace(race)
+    } else {
+        finishCompletedCars = new Set()
+    }
+
     syncCarButtons(carNumbers)
 
     if (mode === "finish") {
-        setTrackerState(`Active race session ${race.sessionId} — FINISH mode. Still recording crossings.`, "warning")
+        const remaining = carNumbers.filter((carNumber) => !finishCompletedCars.has(carNumber)).length
+        if (remaining === 0) {
+            setTrackerState(`Active race session ${race.sessionId} — all cars completed final lap. Proceed to paddock.`, "warning")
+        } else {
+            setTrackerState(`Active race session ${race.sessionId} — FINISH mode. ${remaining} car(s) still need final lap completion.`, "warning")
+        }
     } else {
         setTrackerState(`Active race session ${race.sessionId} (${mode.toUpperCase()})`, "success")
     }
@@ -142,7 +200,7 @@ function attachSocketHandlers(activeSocket) {
         unlockBtn.disabled = false
         lockScreen.hidden = false
         lapTrackerPanel.hidden = true
-        errorMessage.textContent = error?.message || "Invalid observer key"
+        errorMessage.textContent = getConnectionErrorMessage(error, "Invalid observer key")
     })
 
     activeSocket.on("disconnect", () => {
@@ -165,6 +223,8 @@ function attachSocketHandlers(activeSocket) {
 
     activeSocket.on("race:sessionEnded", () => {
         canTrackLaps = false
+        finishCompletedCars = new Set()
+        currentCarNumbers = []
         syncCarButtons([])
         setTrackerState("Session ended. Waiting for next race.", "warning")
     })

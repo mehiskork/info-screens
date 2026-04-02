@@ -144,12 +144,7 @@ function addDriver(sessionId, driverName, carNumber) {
  * Returns null if no sessions exist
  */
 function getNextRaceSession() {
-  // If there's an ended session waiting for paddock, show it with paddock state
-  if (state.endedSession !== null) {
-    const session = JSON.parse(JSON.stringify(state.endedSession))
-    sortDriversByCarNumber(session.drivers)
-    return { success: true, state: 'paddock', data: session }
-  }
+  const showPaddock = state.endedSession !== null
   
   // If no race is active, return the first queued session
   if (state.currentRace.sessionId === null) {
@@ -158,7 +153,7 @@ function getNextRaceSession() {
     }
     const session = JSON.parse(JSON.stringify(state.sessions[0]))
     sortDriversByCarNumber(session.drivers)
-    return { success: true, state: 'upcoming', data: session }
+    return { success: true, state: 'upcoming', paddock: showPaddock, data: session }
   }
   
   // If a race is active, find the next queued session after it
@@ -171,7 +166,7 @@ function getNextRaceSession() {
     }
     const session = JSON.parse(JSON.stringify(state.sessions[0]))
     sortDriversByCarNumber(session.drivers)
-    return { success: true, state: 'upcoming', data: session }
+    return { success: true, state: 'upcoming', paddock: showPaddock, data: session }
   }
   
   // Return the next session after the active one
@@ -182,7 +177,7 @@ function getNextRaceSession() {
   
   const session = JSON.parse(JSON.stringify(state.sessions[nextIndex]))
   sortDriversByCarNumber(session.drivers)
-  return { success: true, state: 'upcoming', data: session }
+  return { success: true, state: 'upcoming', paddock: showPaddock, data: session }
 }
 
 /**
@@ -331,7 +326,8 @@ function startRace(sessionId) {
       currentLap: 0,
       bestTime: null,
       lapTimes: [],
-      lastCrossTime: null
+      lastCrossTime: null,
+      finishLapCompleted: false
     }
   }
   
@@ -512,6 +508,25 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
   }
   
   const carLaps = state.currentRace.laps[carNumber]
+  const isFinishMode = state.currentRace.mode === 'finish'
+
+  // In finish mode, each car can complete only one final lap crossing.
+  if (isFinishMode && carLaps.finishLapCompleted) {
+    return { success: false, error: 'Final lap already completed for this car' }
+  }
+
+  // Finish mode permits one final button press even if no previous crossing exists.
+  if (isFinishMode && carLaps.lastCrossTime === null) {
+    carLaps.finishLapCompleted = true
+    persistState()
+
+    return {
+      success: true,
+      lap: carLaps.currentLap,
+      message: 'Final lap completion recorded - proceed to paddock',
+      finishLapCompleted: true
+    }
+  }
   
   // If this is the first crossing, just record the time
   if (carLaps.lastCrossTime === null) {
@@ -521,7 +536,8 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
     return { 
       success: true, 
       lap: 1,
-      message: 'First lap started'
+      message: 'First lap started',
+      finishLapCompleted: false
     }
   }
   
@@ -537,13 +553,19 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
   if (carLaps.bestTime === null || lapTime < carLaps.bestTime) {
     carLaps.bestTime = lapTime
   }
+
+  if (isFinishMode) {
+    carLaps.finishLapCompleted = true
+  }
+
   persistState()
   
   return {
     success: true,
     lap: carLaps.currentLap,
     lapTime: lapTime,
-    bestTime: carLaps.bestTime
+    bestTime: carLaps.bestTime,
+    finishLapCompleted: isFinishMode
   }
 }
 
