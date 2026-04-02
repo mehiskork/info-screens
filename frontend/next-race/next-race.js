@@ -52,7 +52,7 @@ function applyRacePayload(payload = {}) {
 
 function renderTimer() {
     if (secondsRemaining == null) {
-        timerDisplay.textContent = "Timer: --:--";
+        timerDisplay.textContent = "00:00";
         return;
     }
 
