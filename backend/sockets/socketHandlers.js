@@ -72,11 +72,29 @@ async function authenticateRole(role, accessKey) {
 }
 
 function emitLeaderboardUpdated(io) {
-  const leaderboardResult = getLeaderboard()
-  if (leaderboardResult.success) {
-    io.emit('leaderboard:updated', {
-      leaderboard: leaderboardResult.leaderboard
-    })
+  const payload = buildLeaderboardPayload()
+  if (!payload) {
+    return
+  }
+
+  io.emit('leaderboard:updated', payload)
+}
+
+function buildLeaderboardPayload() {
+  const result = getLeaderboard()
+  if (!result.success) {
+    return null
+  }
+
+  return {
+    leaderboard: result.leaderboard,
+    hasActiveRace: result.hasActiveRace,
+    isFrozenSnapshot: result.isFrozenSnapshot,
+    snapshotState: result.snapshotState,
+    lapDisplayMode: result.lapDisplayMode,
+    source: result.source,
+    sessionId: result.sessionId,
+    raceMode: result.raceMode
   }
 }
 
@@ -93,13 +111,29 @@ function emitAllTimeLeaderboardUpdated(io) {
 function getLifecyclePayload() {
   const raceStatus = getCurrentRaceStatus()
   const leaderboard = getLeaderboard()
+  const leaderboardUpdate = buildLeaderboardPayload()
   const lastFinishedRace = getLastFinishedRace()
+  const hasActiveRace = Boolean(raceStatus.success)
+  const isFrozenSnapshot = !hasActiveRace && Boolean(raceStatus.isFrozenSnapshot || lastFinishedRace.success)
+  const snapshotState = hasActiveRace
+    ? 'live'
+    : (isFrozenSnapshot ? 'post-race-frozen' : 'idle')
 
   return {
-    hasActiveRace: raceStatus.success,
-    raceStatus: raceStatus.success ? raceStatus.race : null,
+    hasActiveRace,
+    isFrozenSnapshot,
+    snapshotState,
+    raceStatus: hasActiveRace ? raceStatus.race : null,
     leaderboard: leaderboard.success ? leaderboard : null,
-    lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null
+    leaderboardUpdate,
+    lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null,
+    frozenSnapshot: isFrozenSnapshot
+      ? {
+          race: lastFinishedRace.success ? lastFinishedRace.race : null,
+          leaderboard: leaderboardUpdate ? leaderboardUpdate.leaderboard : null,
+          lapDisplayMode: 'completedLaps'
+        }
+      : null
   }
 }
 
@@ -111,12 +145,19 @@ function emitRaceStatus(io, options = {}) {
   const { includeLifecycle = true } = options
   const result = getCurrentRaceStatus()
   const lastFinishedRace = getLastFinishedRace()
+  const isFrozenSnapshot = Boolean(result.isFrozenSnapshot || lastFinishedRace.success)
+  const snapshotState = result.success
+    ? 'live'
+    : (isFrozenSnapshot ? 'post-race-frozen' : 'idle')
 
   if (!result.success) {
     io.emit('race:status', {
       active: false,
       mode: 'danger',
       timer: { running: false },
+      isFrozenSnapshot,
+      snapshotState,
+      secondsRemaining: 0,
       lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null
     })
     if (includeLifecycle) {
@@ -128,6 +169,8 @@ function emitRaceStatus(io, options = {}) {
   const race = result.race
   io.emit('race:status', {
     active: true,
+    isFrozenSnapshot: false,
+    snapshotState,
     sessionId: race.sessionId,
     mode: race.mode,
     secondsRemaining: race.secondsRemaining,
