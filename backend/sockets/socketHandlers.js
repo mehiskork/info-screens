@@ -22,6 +22,11 @@ const {
   recordLapCrossing,
   getLeaderboard
 } = require('../state/raceState')
+const {
+  getAllTimeLeaderboardTopTen,
+  getAllTimeLapHistorySummary,
+  recordAllTimeLapEntry
+} = require('../state/allTimeLapLeaderboard')
 
 const RACE_TICK_MS = 1000
 let raceTickHandle = null
@@ -71,6 +76,16 @@ function emitLeaderboardUpdated(io) {
   if (leaderboardResult.success) {
     io.emit('leaderboard:updated', {
       leaderboard: leaderboardResult.leaderboard
+    })
+  }
+}
+
+function emitAllTimeLeaderboardUpdated(io) {
+  const result = getAllTimeLeaderboardTopTen()
+  if (result.success) {
+    io.emit('allTimeLeaderboard:updated', {
+      topTen: result.topTen,
+      updatedAt: result.updatedAt
     })
   }
 }
@@ -125,6 +140,14 @@ function emitRaceSnapshot(socket) {
   socket.emit('race:statusSnapshot', {
     ...getLifecyclePayload()
   })
+
+  const allTimeResult = getAllTimeLeaderboardTopTen()
+  if (allTimeResult.success) {
+    socket.emit('allTimeLeaderboard:snapshot', {
+      topTen: allTimeResult.topTen,
+      updatedAt: allTimeResult.updatedAt
+    })
+  }
 }
 
 /**
@@ -225,6 +248,16 @@ function initializeSocketHandlers(io) {
       }
       const sessions = getAllSessions()
       callback({ success: true, sessions })
+    })
+
+    socket.on('allTimeLeaderboard:get', (callback = () => {}) => {
+      const result = getAllTimeLeaderboardTopTen()
+      callback(result)
+    })
+
+    socket.on('allTimeLeaderboard:historySummary:get', (callback = () => {}) => {
+      const result = getAllTimeLapHistorySummary()
+      callback(result)
     })
     
     // Add a new session
@@ -508,6 +541,24 @@ function initializeSocketHandlers(io) {
       callback(result)
 
       if (result.success) {
+        const raceStatus = getCurrentRaceStatus()
+        if (raceStatus.success) {
+          const driver = (raceStatus.race.drivers || []).find((item) => item.carNumber === carNumber)
+          if (driver && Number.isFinite(result.lapTime) && result.lapTime > 0) {
+            const allTimeInsert = recordAllTimeLapEntry({
+              driverName: driver.name,
+              carNumber,
+              lapTime: result.lapTime,
+              recordedAt: timestamp || Date.now(),
+              sessionId: raceStatus.race.sessionId
+            })
+
+            if (allTimeInsert.success && allTimeInsert.topTenChanged) {
+              emitAllTimeLeaderboardUpdated(io)
+            }
+          }
+        }
+
         io.emit('lap:recorded', {
           carNumber,
           timestamp: timestamp || Date.now(),
