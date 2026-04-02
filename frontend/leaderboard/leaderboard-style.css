@@ -157,6 +157,11 @@ body:fullscreen {
     flex-grow: 1;
 }
 
+/* RT71: fullscreen nupp peidetakse fullscreen režiimis */
+:fullscreen #fullscreen-btn {
+    display: none;
+}
+
 /* eemaldab musta tausta */
 ::backdrop {
     background-color: var(--background);
