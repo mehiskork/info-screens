@@ -107,7 +107,8 @@ function emitLifecycle(io) {
   io.emit('race:lifecycle', getLifecyclePayload())
 }
 
-function emitRaceStatus(io) {
+function emitRaceStatus(io, options = {}) {
+  const { includeLifecycle = true } = options
   const result = getCurrentRaceStatus()
   const lastFinishedRace = getLastFinishedRace()
 
@@ -118,7 +119,9 @@ function emitRaceStatus(io) {
       timer: { running: false },
       lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null
     })
-    emitLifecycle(io)
+    if (includeLifecycle) {
+      emitLifecycle(io)
+    }
     return
   }
 
@@ -133,7 +136,9 @@ function emitRaceStatus(io) {
     lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null
   })
 
-  emitLifecycle(io)
+  if (includeLifecycle) {
+    emitLifecycle(io)
+  }
 }
 
 function emitRaceSnapshot(socket) {
@@ -163,7 +168,7 @@ function broadcastState(io) {
       timer: { running: false },
       hasActiveRace: false
     })
-    emitRaceStatus(io)
+    emitRaceStatus(io, { includeLifecycle: false })
     return
   }
   
@@ -193,8 +198,7 @@ function broadcastState(io) {
     })
   }
 
-  emitRaceStatus(io)
-  emitLeaderboardUpdated(io)
+  emitRaceStatus(io, { includeLifecycle: false })
 }
 
 function startRaceLifecycleTick(io) {
@@ -412,6 +416,8 @@ function initializeSocketHandlers(io) {
         io.emit('race:started', { sessionId })
         io.emit('race:modeChanged', { mode: 'safe' })
         io.emit('nextRace:changed')
+        emitRaceStatus(io)
+        emitLeaderboardUpdated(io)
         broadcastState(io)
       }
     })
@@ -439,6 +445,7 @@ function initializeSocketHandlers(io) {
             reason: 'manual'
           })
         }
+        emitRaceStatus(io)
         broadcastState(io)
       }
       
@@ -468,6 +475,7 @@ function initializeSocketHandlers(io) {
             reason: 'manual'
           })
         }
+        emitRaceStatus(io)
         broadcastState(io)
       }
       
@@ -491,6 +499,8 @@ function initializeSocketHandlers(io) {
           source: 'session:end'
         })
         io.emit('nextRace:changed')
+        emitRaceStatus(io)
+        emitLeaderboardUpdated(io)
         broadcastState(io)
       }
       
@@ -514,6 +524,8 @@ function initializeSocketHandlers(io) {
           source: 'race:endSession'
         })
         io.emit('nextRace:changed')
+        emitRaceStatus(io)
+        emitLeaderboardUpdated(io)
         broadcastState(io)
       }
       

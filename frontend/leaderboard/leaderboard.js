@@ -7,9 +7,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const timerDisplay = document.getElementById('timer-display'); // Taimeri kuvamine
     const fullscreenBtn = document.getElementById('fullscreen-btn'); // fullscreen nupp
     const lapsHeader = document.querySelector('.leaderboard-table thead tr th:last-child'); // RT71: viide viimase veeru pealkirjale
+    const timerModel = window.createRaceTimerModel({
+        showHundredths: false,
+        onTick: ({ text }) => {
+            timerDisplay.innerText = text;
+        }
+    });
 
     // MUUDATUS: sessiooni lõpp flag — hoiab meeles et sessioon on lõppenud
     let sessionEnded = false;
+    timerModel.start();
 
     // FULLSCREEN funktsioon (RT71)
     function updateFullscreenButton() {
@@ -56,16 +63,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ralli staatus ja taimer 
     socket.on('race:status', (race) => {
+        timerModel.applyState(race);
         if (sessionEnded) return; // MUUDATUS: kui sessioon lõppes, ära uuenda
         if (race && race.active && race.mode !== 'finish') {
-            // minutite ja sekundite arvutused
-            const minutes = Math.floor(race.secondsRemaining / 60);
-            const seconds = race.secondsRemaining % 60;
-
-            // kui alla kümne, siis tuleb null ette
-            const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-
-            timerDisplay.innerText = timeString; // Kuvab allesjäänud aja
             const mode = race.mode || 'waiting'; // Lipu tekst (SAFE, RACING, PAUSED)
             flagStatus.innerText = mode.toUpperCase();
             flagStatus.className = 'meta-box ' + mode; // muudab kasti värvid
@@ -97,15 +97,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     });
+
+    socket.on('race:modeChanged', (state) => {
+        timerModel.applyState(state);
+
+        if (sessionEnded) return;
+
+        const mode = (state && state.mode) ? state.mode.toLowerCase() : '';
+        if (!mode) return;
+
+        flagStatus.innerText = mode.toUpperCase();
+        flagStatus.className = 'meta-box ' + mode;
+    });
+
     // Snapshoti funktsioon lisatud ✅ RT57
     // hoiab ära vananenud taimeri/lipu kuvamise lehe laadimisel
     socket.on('race:statusSnapshot', (data) => {
+        timerModel.applyState(data);
         if (data.raceStatus) {
             const race = data.raceStatus;
-            const minutes = Math.floor(race.secondsRemaining / 60);
-            const seconds = race.secondsRemaining % 60;
-            const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-            timerDisplay.innerText = timeString;
             const mode = race.mode || 'waiting';
             flagStatus.innerText = mode.toUpperCase();
             flagStatus.className = 'meta-box ' + mode;
@@ -156,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // finish režiim, taimer läheb kohe nulli
     // backend saadab race:finished sündmuse kui ralli lõpeb (käsitsi või taimeri lõppedes)
     socket.on('race:finished', () => {
+        timerModel.applyState({ mode: 'finish' });
         timerDisplay.innerText = "00:00";
         flagStatus.innerText = "FINISH";
         flagStatus.className = 'meta-box finish'; // ruuduline must-valge lipp CSS-ist
