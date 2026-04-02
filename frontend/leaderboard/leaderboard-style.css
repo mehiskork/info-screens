@@ -64,22 +64,24 @@ body:fullscreen {
 .safe,
 .racing {
     background-color: green !important;
-    color: white;
+    color: black;
 }
 
 .hazard {
-    background-color: orange !important;
-    color: white;
+    background-color: hsl(58, 96%, 53%) !important;
+    color: black;
+
 }
 
 .danger,
 .paused {
-    background-color: crimson !important;
-    color: white;
+    background-color: #dc2626 !important;
+    color: black;
+
 }
 
 .finish {
-    color: red !important;
+    color: #dc2626 !important;
     background: repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 20px 20px !important;
     text-shadow: 1px 1px 2px black;
 }
@@ -122,18 +124,37 @@ body:fullscreen {
 
 /* 5. Fullscreen nupp */
 .button1 {
-    background-color: #111827;
-    border: 1px solid var(--border);
-    border-radius: .75rem;
-    color: white;
-    font-weight: 600;
-    padding: .75rem 1.2rem;
+    background-color: var(--card);
+    border: 2px solid var(--border);
+    /* RT71 */
+    border-radius: 12px;
+    /* 12px */
+    color: var(--foreground);
+    /* hex värv */
     cursor: pointer;
-    transition: all .2s ease;
+    font-family: Arial, sans-serif;
+    /* Inter font */
+    font-weight: 700;
+    font-size: 1rem;
+    /* font-size lisatud */
+    padding: .8rem 1.25rem;
+    /* next-race padding */
+    transition: all 0.2s ease;
+    user-select: none;
+    outline: none;
+    /* transform lisatud */
 }
 
 .button1:hover {
-    background-color: #374151;
+    background-color: oklch(0.269 0 0);
+    border-color: var(--foreground);
+}
+
+/* active efekt lisatud — next-race stiilis */
+.button1:active {
+    transform: scale(0.97);
+    background: var(--foreground);
+    color: var(--background);
 }
 
 [hidden] {

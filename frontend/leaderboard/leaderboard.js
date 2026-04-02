@@ -70,12 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
             flagStatus.innerText = mode.toUpperCase();
             flagStatus.className = 'meta-box ' + mode; // muudab kasti värvid
         } else if (race && race.mode === 'finish') {  //  finish režiimil taimer nulli
-            timerDisplay.innerText = "--:--";
+            timerDisplay.innerText = "00:00";
             flagStatus.innerText = "FINISH";
             flagStatus.className = 'meta-box finish';
         } else {
             // kui ralli ei toimu hetkel
-            timerDisplay.innerText = "--:--";
+            timerDisplay.innerText = "00:00";
             flagStatus.innerText = "DANGER";
             flagStatus.className = 'meta-box danger';
             // näitab viimast lõppenud ralli edetabelit
@@ -136,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('race:sessionEnded', () => {
         sessionEnded = true; // MUUDATUS: märgib sessiooni lõppenuks
         if (lapsHeader) lapsHeader.innerText = 'Laps'; // RT71: sessiooni lõpp — veeru nimi "Laps"
-        timerDisplay.innerText = "--:--";
+        timerDisplay.innerText = "00:00";
         flagStatus.innerText = "DANGER"; // punane danger lipp peale sessiooni lõppu ✅
         flagStatus.className = 'meta-box danger'; // punane taust ✅
         // RT71: kuvab lõppenud ralli edetabeli sessiooni lõpp režiimis
@@ -156,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // finish režiim, taimer läheb kohe nulli
     // backend saadab race:finished sündmuse kui ralli lõpeb (käsitsi või taimeri lõppedes)
     socket.on('race:finished', () => {
-        timerDisplay.innerText = "--:--";
+        timerDisplay.innerText = "00:00";
         flagStatus.innerText = "FINISH";
         flagStatus.className = 'meta-box finish'; // ruuduline must-valge lipp CSS-ist
     });
@@ -225,7 +225,7 @@ function renderLeaderboard(data, sessionEnded = false) {
                     ? `${minutes}:${seconds < 10 ? '0' : ''}${seconds}.${String(milliseconds).padStart(3, '0')}`
                     : `${seconds}.${String(milliseconds).padStart(3, '0')}`;
             })()
-            : '--:--';
+            : '00:00';
 
         // RT71: sessiooni lõpus kuva lõpetatud ringid (currentLap - 1), live režiimis currentLap
         const lapsValue = sessionEnded
