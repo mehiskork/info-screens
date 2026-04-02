@@ -54,19 +54,19 @@ document.addEventListener('DOMContentLoaded', () => {
             // kui alla kümne, siis tuleb null ette
             const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
 
-            timerDisplay.innerText = `Timer: ${timeString}`; // Kuvab allesjäänud aja
+            timerDisplay.innerText = timeString; // Kuvab allesjäänud aja
             const mode = race.mode || 'waiting'; // Lipu tekst (SAFE, RACING, PAUSED)
-            flagStatus.innerText = `Flag: ${mode.toUpperCase()}`;
+            flagStatus.innerText = mode.toUpperCase();
             flagStatus.className = 'meta-box ' + mode; // muudab kasti värvid
         } else if (race && race.mode === 'finish') {  //  finish režiimil taimer nulli
-            timerDisplay.innerText = "Timer: --:--";
-            flagStatus.innerText = "Flag: FINISH";
+            timerDisplay.innerText = "--:--";
+            flagStatus.innerText = "FINISH";
             flagStatus.className = 'meta-box finish';
         } else {
             // kui ralli ei toimu hetkel
-            timerDisplay.innerText = "Timer: --:--";
-            flagStatus.innerText = "Flag: Waiting";
-            flagStatus.className = 'meta-box';
+            timerDisplay.innerText = "--:--";
+            flagStatus.innerText = "DANGER";
+            flagStatus.className = 'meta-box danger';
             // näitab viimast lõppenud ralli edetabelit
             // PARANDUS: lastFinishedRace on raw object, leaderboardi ehitamine
             // varem oli race.lastFinishedRace.leaderboard (mis oli alati undefined)
@@ -93,10 +93,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const race = data.raceStatus;
             const minutes = Math.floor(race.secondsRemaining / 60);
             const seconds = race.secondsRemaining % 60;
-            const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-            timerDisplay.innerText = `Timer: ${timeString}`;
+            const timeString = `${minutes}:${seconds < 10 ? '0' : ''}${seconds} `;
+            timerDisplay.innerText = timeString;
             const mode = race.mode || 'waiting';
-            flagStatus.innerText = `Flag: ${mode.toUpperCase()}`;
+            flagStatus.innerText = mode.toUpperCase();
             flagStatus.className = 'meta-box ' + mode;
         }
         if (data.leaderboard) {
@@ -124,16 +124,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // ilma selleta jäi taimer käima peale End Session nupu vajutamist
     socket.on('race:sessionEnded', () => {
         sessionEnded = true; // MUUDATUS: märgib sessiooni lõppenuks
-        timerDisplay.innerText = "Timer: --:--";
-        flagStatus.innerText = "Flag: DANGER"; // punane danger lipp peale sessiooni lõppu ✅
+        timerDisplay.innerText = "--:--";
+        flagStatus.innerText = "DANGER"; // punane danger lipp peale sessiooni lõppu ✅
         flagStatus.className = 'meta-box danger'; // punane taust ✅
     });
 
     // finish režiim, taimer läheb kohe nulli
     // backend saadab race:finished sündmuse kui ralli lõpeb (käsitsi või taimeri lõppedes)
     socket.on('race:finished', () => {
-        timerDisplay.innerText = "Timer: --:--";
-        flagStatus.innerText = "Flag: FINISH";
+        timerDisplay.innerText = "--:--";
+        flagStatus.innerText = "FINISH";
         flagStatus.className = 'meta-box finish'; // ruuduline must-valge lipp CSS-ist
     });
 
@@ -191,8 +191,8 @@ function renderLeaderboard(data) {
                 const seconds = Math.floor((ms % 60000) / 1000);
                 const milliseconds = ms % 1000;
                 return minutes > 0
-                    ? `${minutes}:${seconds < 10 ? '0' : ''}${seconds}.${String(milliseconds).padStart(3, '0')}`
-                    : `${seconds}.${String(milliseconds).padStart(3, '0')}s`;
+                    ? `${minutes}:${seconds < 10 ? '0' : ''}${seconds}.${String(milliseconds).padStart(3, '0')} `
+                    : `${seconds}.${String(milliseconds).padStart(3, '0')}`;
             })()
             : '--:--';
         // ridade lisamine tabelisse
@@ -201,8 +201,8 @@ function renderLeaderboard(data) {
             <td>${driver.carNumber}</td>
             <td>${driver.name}</td>
             <td>${bestTimeStr}</td>
-            <td>${driver.currentLap || 0}</td> 
-        `;
+            <td>${driver.currentLap || 0}</td>
+            `;
         tbody.appendChild(row);
     });
 }
