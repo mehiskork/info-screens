@@ -318,6 +318,8 @@ function startRace(sessionId) {
   
   // Clear ended session when starting new race (paddock flow complete)
   state.endedSession = null
+  // Finished snapshot is only kept until the next race starts.
+  state.lastFinishedRace = null
   
   // Initialize lap tracking for each car
   const laps = {}
@@ -429,16 +431,31 @@ function endSession() {
 function getCurrentRaceStatus() {
   // Check if a race is active
   if (state.currentRace.sessionId === null) {
-    return { success: false, error: 'No active race' }
+    const hasFrozenSnapshot = state.lastFinishedRace !== null
+    return {
+      success: false,
+      error: 'No active race',
+      hasActiveRace: false,
+      isFrozenSnapshot: hasFrozenSnapshot,
+      snapshotState: hasFrozenSnapshot ? 'post-race-frozen' : 'idle',
+      lastFinishedRace: hasFrozenSnapshot ? JSON.parse(JSON.stringify(state.lastFinishedRace)) : null
+    }
   }
   
-  // Calculate time remaining
+  // Finish mode is a frozen post-race state while session is still active.
+  // Status should always report 00:00 in this mode.
+  const isFinishMode = state.currentRace.mode === 'finish'
   const elapsedSeconds = Math.floor((Date.now() - state.currentRace.startTime) / 1000)
-  const secondsRemaining = Math.max(0, RACE_DURATION - elapsedSeconds)
+  const secondsRemaining = isFinishMode
+    ? 0
+    : Math.max(0, RACE_DURATION - elapsedSeconds)
   
   // Return race data with time remaining
   return {
     success: true,
+    hasActiveRace: true,
+    isFrozenSnapshot: false,
+    snapshotState: 'live',
     race: {
       ...JSON.parse(JSON.stringify(state.currentRace)),
       secondsRemaining,
@@ -588,7 +605,11 @@ function getLeaderboard() {
   
   return {
     success: true,
+    hasActiveRace,
+    isFrozenSnapshot: !hasActiveRace && state.lastFinishedRace !== null,
+    snapshotState: hasActiveRace ? 'live' : 'post-race-frozen',
     source: hasActiveRace ? 'active' : 'lastFinished',
+    lapDisplayMode: hasActiveRace ? 'currentLap' : 'completedLaps',
     sessionId: sourceRace.sessionId,
     raceMode: sourceRace.mode,
     leaderboard
