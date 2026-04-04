@@ -4,6 +4,10 @@ let endTime = null
 let currentMode = ""
 let lastText = ""
 let lockedNextRace = null
+let lastNextRaceId = null
+let lastMode = null
+let lastActive = null
+let lastRaceId = null
 
 // Lock screen
 const lockScreen = document.getElementById("lock-screen")
@@ -54,9 +58,8 @@ form.addEventListener("submit", (e) => {
 
     socket.on("connect", () => {
         console.log("Connected as safety:", socket.id)
-        if (socket) {
-            socket.removeAllListeners()
-        }
+
+
         setupSocketEvents()
     })
 
@@ -121,26 +124,26 @@ endSessionBtn.onclick = () => {
     })
 }
 
+
+
 // SOCKET EVENTS
 function setupSocketEvents() {
 
     socket.onAny((event, data) => {
-        console.log("EVENT:", event, data)
+        //console.log("EVENT:", event, data)
     })
 
     socket.on("race:statusSnapshot", (state) => {
-        console.log("SNAPSHOT:", state)
+        //console.log("SNAPSHOT:", state)
 
         lockScreen.style.display = "none"
         racePanel.style.display = "block"
 
         if (!state.raceStatus) {
-            status.innerText = "No active race"
-            status.style.color = "#ccc"
+            setIdle()
+            loadNextRace()
             return
-
         }
-
 
         handleState(state.raceStatus)
         renderCurrentRace(state.raceStatus)
@@ -153,9 +156,6 @@ function setupSocketEvents() {
         handleState(s)
         renderCurrentRace(s)
 
-        if (!lockedNextRace) {
-            loadNextRace()
-        }
     })
 
     socket.on("race:modeChanged", (state) =>
@@ -175,7 +175,7 @@ function setupSocketEvents() {
     })
 
     socket.on("nextRace:changed", () => {
-        console.log("Next race updated")
+        //console.log("Next race updated")
 
         if (!lockedNextRace) {
             loadNextRace()
@@ -185,14 +185,26 @@ function setupSocketEvents() {
 
 // STATE
 function handleState(state) {
-    if (!state) {
-        setIdle()
-        updateUIState(false)
-        return
-    }
+    if (!state) return
 
     const isActive = state.active ?? state.hasActiveRace
     const mode = (state.mode || state.raceMode || "").toLowerCase()
+
+    // Block duplicate updates
+    const raceId = state.id || state.sessionId
+
+    if (
+        mode === lastMode &&
+        isActive === lastActive &&
+        raceId === lastRaceId
+    ) return
+
+    lastMode = mode
+    lastActive = isActive
+    lastRaceId = raceId
+
+    lastMode = mode
+    lastActive = isActive
 
     currentMode = mode
     updateUIState(isActive, mode)
@@ -244,43 +256,20 @@ function renderCurrentRace(race) {
 function loadNextRace() {
     if (!socket) return
 
-    const titleEl = document.getElementById("next-race-title")
-    const listEl = document.getElementById("next-race-list")
-
-    listEl.innerHTML = ""
-
-    if (lockedNextRace) {
-        const race = lockedNextRace
-
-        titleEl.innerText = "Next: " + (race.name || "Session " + race.id)
-
-        const entries = race.entries || race.drivers || []
-
-        entries.forEach(e => {
-            const row = document.createElement("div")
-            row.className = "driver-row"
-
-            row.innerHTML = `
-                <div class="driver-badge">${e.carNumber || "-"}</div>
-                <div class="driver-name">${e.driverName || e.name || "Driver"}</div>
-            `
-
-            listEl.appendChild(row)
-        })
-
-        return
-    }
-
     socket.emit("getNextRace", (res) => {
-        if (!res?.success) {
-            titleEl.innerText = "No upcoming races"
-            listEl.innerHTML = ""
-            startBtn.disabled = true
-            return
-        }
+        if (!res?.success) return
 
         const race = res.data
 
+        // prevent re-render if same race
+        if (race.id === lastNextRaceId) return
+        lastNextRaceId = race.id
+
+        const titleEl = document.getElementById("next-race-title")
+        const listEl = document.getElementById("next-race-list")
+
+        listEl.innerHTML = ""
+
         titleEl.innerText = "Next: " + (race.name || "Session " + race.id)
 
         const entries = race.entries || race.drivers || []
@@ -290,16 +279,17 @@ function loadNextRace() {
             row.className = "driver-row"
 
             row.innerHTML = `
-                <div class="driver-badge">${e.carNumber || "-"}</div>
+                <div class="driver-badge">Car ${e.carNumber || "-"}</div>
                 <div class="driver-name">${e.driverName || e.name || "Driver"}</div>
             `
 
             listEl.appendChild(row)
         })
 
-        startBtn.disabled = false
     })
 }
+
+
 
 // TIMER
 function updateTimer() {
