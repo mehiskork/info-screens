@@ -116,9 +116,10 @@ body {
     color: red;
     font: bold;
     font-size: 25px;
+
     background:
         repeating-conic-gradient(black 0% 25%,
-            white 0% 50%) 0 0 / 30px 30px;
+            white 0% 50%) 0 0 / 32px 32px;
 }
 
 
