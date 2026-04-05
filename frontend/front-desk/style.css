@@ -110,13 +110,21 @@ body {
     -webkit-tap-highlight-color: transparent;
 }
 
+.rmv-session-btn {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+    align-self: center;
+}
+
 .button1:hover,
 #add-session-btn:hover,
 .driver-form>button[type="submit"]:hover,
 .edit-driver-btn:hover,
 .save-driver-btn:hover,
 .cancel-driver-btn:hover,
-.rmv-driver-btn:hover {
+.rmv-driver-btn:hover,
+.rmv-session-btn:hover {
     background: var(--muted);
     border-color: var(--foreground);
 }
@@ -134,21 +142,15 @@ body {
 
 
 
-.rmv-session-btn {
-    border-color: #ef4444;
-    color: #ef4444;
-}
 
 
-.rmv-session-btn:hover {
-    background: rgba(239, 68, 68, 0.12);
-    border-color: #ef4444;
-}
+
 
 /* Sizes */
 .button1,
 #add-session-btn,
-.driver-form>button[type="submit"] {
+.driver-form>button[type="submit"],
+.rmv-session-btn {
     padding: 0.8rem 1.25rem;
     font-size: 1rem;
 }
@@ -187,23 +189,7 @@ body {
     align-self: center;
 }
 
-.rmv-session-btn {
-    grid-column: 2;
-    grid-row: 1;
-    justify-self: end;
-    align-self: center;
-    background: transparent;
-    border: none;
-    padding: 0;
-    color: #ff3b4d;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-}
 
-.rmv-session-btn:hover {
-    color: #ff6472;
-}
 
 /* Everything under header spans full width */
 .driver-form,
