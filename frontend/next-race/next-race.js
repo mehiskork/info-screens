@@ -75,13 +75,12 @@ function renderFlag() {
     flagStatus.textContent = normalizeMode(mode).toUpperCase();
 
     flagStatus.style.background = "";
-    flagStatus.style.color = "white";
+    flagStatus.style.color = "black";
 
     if (mode === "safe") {
         flagStatus.style.background = "green";
     } else if (mode === "hazard") {
         flagStatus.style.background = "yellow";
-        flagStatus.style.color = "black";
     } else if (mode === "danger") {
         flagStatus.style.background = "red";
     } else if (mode === "finish" || mode === "finished") {
