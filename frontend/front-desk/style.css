@@ -22,47 +22,6 @@ body {
     font-family: Arial, sans-serif;
 }
 
-/* Lock screen */
-#lock-screen {
-    width: min(420px, calc(100vw - 32px));
-    margin: 0;
-    padding: 32px;
-    border: 1px solid var(--border);
-    border-radius: 22px;
-    background: var(--card);
-    color: var(--card-foreground);
-
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
-#lock-screen h1 {
-    text-align: center;
-}
-
-#key-form {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-#access-key {
-    width: 100%;
-    min-height: 48px;
-    padding: 0 14px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--input-background);
-    color: var(--foreground);
-    font-size: 1rem;
-}
-
-#access-key::placeholder {
-    color: var(--muted-foreground);
-}
-
 .error1 {
     color: crimson;
     min-height: 20px;
