@@ -7,9 +7,24 @@ const addSessionBtn = document.getElementById("add-session-btn");
 const sessionsContainer = document.getElementById("sessions-container");
 
 
+// holds Socket.IO connection object
 let socket = null;
 const MAX_DRIVER_NAME_LENGTH = 25;
+
+// A flag to prevent attaching the same socket listener multiple times.
 let queueListenerAttached = false;
+
+// whether the user has successfully authenticated at least once in this tab session.
+let isAuthed = false;
+
+
+//enables/disables lock screen inputs
+function setFormEnabled(enabled) {
+    accessKeyInput.disabled = !enabled;
+    keyForm.querySelector("button[type='submit']").disabled = !enabled;
+}
+
+
 
 // all names uppercase when adding a driver. Can change in edit if needed
 function formatDriverName(name) {
@@ -26,9 +41,12 @@ function formatDriverName(name) {
 }
 
 
+// attach Socket.IO event listeners related to the race queue
 
 function attachQueueListeners() {
-    if (!socket) return;
+    if (!socket || queueListenerAttached) return;
+
+    queueListenerAttached = true;
 
     // when the backend emits nextRace:changed, run this function
     socket.on("nextRace:changed", () => {
@@ -57,6 +75,7 @@ keyForm.addEventListener("submit", (e) => {
 
     // if socket exists disconnects it
     if (socket) socket.disconnect();
+    queueListenerAttached = false;
 
     // Create a new socket that tries to connect as a receptionist using this key
     socket = createSocket({ role: "receptionist", accessKey })
@@ -65,8 +84,12 @@ keyForm.addEventListener("submit", (e) => {
 
     //When the backend accepts the socket connection, run this code.
     socket.on("connect", () => {
+
+        isAuthed = true;
         // clears old error text
         errorMessage.textContent = "";
+        setFormEnabled(true);
+
         lockScreen.hidden = true;
         frontDeskApp.hidden = false;
 
@@ -77,6 +100,15 @@ keyForm.addEventListener("submit", (e) => {
 
     })
 
+    socket.on("disconnect", () => {
+        lockScreen.hidden = false;
+        frontDeskApp.hidden = true;
+
+        errorMessage.textContent = "Server disconnected";
+
+        setFormEnabled(false);
+    })
+
 
 
 
@@ -84,13 +116,27 @@ keyForm.addEventListener("submit", (e) => {
 
         console.log("connect_error:", err.message);
 
+        if (isAuthed) {
+            lockScreen.hidden = false;
+            frontDeskApp.hidden = true;
+            setFormEnabled(false);
+            if (!errorMessage.textContent) {
+                errorMessage.textContent = "Server disconnected";
+
+            }
+
+            return;
+        }
+
+        setFormEnabled(true);
+
         if (err.message === "xhr poll error") {
             errorMessage.textContent = "Cannot connect to server";
             return;
         }
 
         if (err.message === "Invalid access key") {
-            errorMessage.textContent = "Incorrect access key";
+            errorMessage.textContent = "Invalid access key";
             return;
         }
 
@@ -98,7 +144,7 @@ keyForm.addEventListener("submit", (e) => {
     });
 
 
-    // Now try to connect to the backend using the handshake auth
+    // connect to the backend using the handshake auth
     socket.connect();
 
 });
@@ -106,23 +152,34 @@ keyForm.addEventListener("submit", (e) => {
 function renderSessions(sessions) {
     sessionsContainer.innerHTML = "";
 
+
+    // newest session first 
+    sessions = [...sessions].sort((a, b) => b.id - a.id);
+
     // Loops through each session in the array and creates a card for each
     sessions.forEach((session) => {
         const card = document.createElement("div");
         card.className = "session-card";
 
-        // compute taken cars
+        // computes taken cars
         const takenCars = session.drivers.map((driver) => driver.carNumber);
         card.innerHTML = `
         <h3>Session ${session.id}</h3>
         
-
       <form class="driver-form">
+
+      <!-- form-label - styling, car-label - positioning -->
   <p class="form-label car-label">Select Car</p>
 
   <div class="car-picker">
+
+  <!-- creates array with 8 items -->
     ${Array.from({ length: 8 }, (_, i) => {
+
+            // convert index to car number
             const carNumber = i + 1;
+
+
             const isTaken = takenCars.includes(carNumber);
 
             return `
@@ -148,25 +205,39 @@ function renderSessions(sessions) {
         <button class= "rmv-session-btn" type=button>Remove Session</button>
         `;
 
+        // holds Car1-Car8 buttons
         const carPicker = card.querySelector(".car-picker");
+
+        // holds info of selected car. hidden
         const carNumberInput = card.querySelector(".car-number-input");
 
         carPicker.addEventListener("click", (e) => {
+
+            // e.target is the exact element clicked (could be the button text, the button itself, etc.).
+            // .closest(".car-chip") walks up the DOM tree to find the nearest ancestor that has class car-chip.
             const chip = e.target.closest(".car-chip");
+
+            // if the click is not on chip, do nothing
             if (!chip) return;
+
             if (chip.disabled) return;
 
+            // removes selected
             carPicker.querySelectorAll(".car-chip").forEach((btn) => btn.classList.remove("selected"));
+
+            // adds selected
             chip.classList.add("selected");
+
+            // Stores the chosen car number into the hidden input
             carNumberInput.value = chip.dataset.car;
         })
 
-
+        //quering elements in current session card
         const driverForm = card.querySelector(".driver-form")
         const driverNameInput = card.querySelector(".driver-name-input")
         const driversError = card.querySelector(".drivers-error")
 
-
+        // submit drivers to session
         driverForm.addEventListener("submit", (e) => {
             e.preventDefault();
 
@@ -194,7 +265,7 @@ function renderSessions(sessions) {
             driversError.textContent = "";
             console.log("sending driver:add", session.id, driverName, carNumber);
 
-
+            // sends Socket.IO event, payload inlcudes which session to add, normalized drivername, chosen car
             socket.emit("driver:add", { sessionId: session.id, driverName, carNumber }, (response) => {
                 console.log("driver: add response:", response);
 
@@ -205,8 +276,11 @@ function renderSessions(sessions) {
             });
         });
 
+
+
         const driversContainer = card.querySelector(".drivers-container")
 
+        // loops every driver, builds one row for each
         session.drivers.forEach((driver) => {
             const row = document.createElement("div");
             row.className = "driver-row";
@@ -230,7 +304,7 @@ function renderSessions(sessions) {
                     console.log("driver:remove response:", response);
 
                     if (!response.success) {
-                        errorMessage.textContent = response.error || "Could not remove driver"
+                        driversError.textContent = response.error || "Could not remove driver"
                         return;
                     }
                 });
@@ -308,6 +382,7 @@ function renderSessions(sessions) {
     })
 }
 
+// ask the backend for the current list of upcoming sessions, then re-render the UI.
 function loadSessions() {
     if (!socket) {
         console.log("No socket yet");
