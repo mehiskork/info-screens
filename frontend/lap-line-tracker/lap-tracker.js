@@ -5,7 +5,7 @@ let finishCompletedCars = new Set()
 let currentCarNumbers = []
 
 const lockScreen = document.getElementById("lock-screen")
-const authForm = document.getElementById("auth-form")
+const authForm = document.getElementById("key-form")
 const accessKeyInput = document.getElementById("access-key")
 const unlockBtn = document.getElementById("unlock-btn")
 const errorMessage = document.getElementById("error-message")
@@ -200,7 +200,7 @@ function attachSocketHandlers(activeSocket) {
         unlockBtn.disabled = false
         lockScreen.hidden = false
         lapTrackerPanel.hidden = true
-        errorMessage.textContent = getConnectionErrorMessage(error, "Invalid observer key")
+        errorMessage.textContent = getConnectionErrorMessage(error, "Invalid access key")
     })
 
     activeSocket.on("disconnect", () => {
@@ -235,7 +235,7 @@ authForm.addEventListener("submit", (event) => {
 
     const accessKey = accessKeyInput.value.trim()
     if (!accessKey) {
-        errorMessage.textContent = "Enter observer key"
+        errorMessage.textContent = "Enter access key"
         return
     }
 
