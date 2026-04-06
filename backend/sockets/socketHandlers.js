@@ -30,6 +30,7 @@ const {
 
 const RACE_TICK_MS = 1000
 let raceTickHandle = null
+let lastBroadcastStateSignature = null
 
 const ROLE = {
   PUBLIC: 'public',
@@ -198,6 +199,23 @@ function emitRaceSnapshot(socket) {
   }
 }
 
+function logBroadcastStateChange(payload) {
+  const signature = JSON.stringify({
+    raceMode: payload.raceMode,
+    hasActiveRace: payload.hasActiveRace,
+    sessionId: payload.sessionId || null,
+    timerRunning: Boolean(payload.timer?.running),
+    endsAt: payload.timer?.endsAt || null
+  })
+
+  if (signature === lastBroadcastStateSignature) {
+    return
+  }
+
+  lastBroadcastStateSignature = signature
+  console.log('Broadcast state changed:', payload)
+}
+
 /**
  * Broadcast current race state to all connected clients
  * Emits state:update event with race mode and timer information
@@ -206,17 +224,19 @@ function broadcastState(io) {
   const result = getCurrentRaceStatus()
 
   if (!result.success) {
-    io.emit("state:update", {
+    const payload = {
       raceMode: "DANGER",
       timer: { running: false },
       hasActiveRace: false
-    })
+    }
+
+    io.emit("state:update", payload)
+    logBroadcastStateChange(payload)
     emitRaceStatus(io, { includeLifecycle: false })
     return
   }
   
   const race = result.race
-  console.log("BROADCAST:", race.mode)
 
   const now = Date.now()
 
@@ -230,7 +250,7 @@ function broadcastState(io) {
 
   const updatedStatus = getCurrentRaceStatus()
   if (updatedStatus.success) {
-    io.emit("state:update", {
+    const payload = {
       raceMode: updatedStatus.race.mode.toUpperCase(),
       timer: {
         running: updatedStatus.race.mode !== "finish",
@@ -238,7 +258,10 @@ function broadcastState(io) {
       },
       hasActiveRace: true,
       sessionId: updatedStatus.race.sessionId
-    })
+    }
+
+    io.emit("state:update", payload)
+    logBroadcastStateChange(payload)
   }
 
   emitRaceStatus(io, { includeLifecycle: false })
