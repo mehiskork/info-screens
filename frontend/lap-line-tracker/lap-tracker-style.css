@@ -31,83 +31,8 @@ body {
     padding: 16px;
 }
 
-/* Lock Screen Styles */
-#lock-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--background);
-    z-index: 1000;
-}
-
 #lock-screen[hidden] {
     display: none;
-}
-
-.lock-panel {
-    max-width: 400px;
-    width: 100%;
-    padding: 32px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--card);
-    color: var(--card-foreground);
-    text-align: center;
-}
-
-.lock-panel h2 {
-    margin: 0 0 24px 0;
-    font-size: 24px;
-    font-weight: 600;
-}
-
-.lock-panel input {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 16px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--input-background);
-    color: var(--foreground);
-    font-size: 16px;
-}
-
-.lock-panel input:focus {
-    outline: none;
-    border-color: var(--primary);
-}
-
-.lock-panel button {
-    width: 100%;
-    padding: 12px;
-    border: none;
-    border-radius: var(--radius);
-    background: var(--primary);
-    color: var(--primary-foreground);
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: opacity 0.2s;
-}
-
-.lock-panel button:hover {
-    opacity: 0.9;
-}
-
-.lock-panel button:active {
-    opacity: 0.8;
-}
-
-.error {
-    color: crimson;
-    font-size: 14px;
-    margin: 12px 0 0 0;
-    min-height: 20px;
 }
 
 /* Lap Tracker Panel */

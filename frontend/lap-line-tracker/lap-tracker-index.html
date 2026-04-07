@@ -5,22 +5,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lap-line Tracker</title>
+    <link rel="stylesheet" href="/frontend/shared/lock-screen.css">
     <link rel="stylesheet" href="/frontend/lap-line-tracker/lap-tracker-style.css">
 </head>
 
 <body class="dark">
 
     <!-- Lock Screen for Authentication -->
-    <div id="lock-screen">
-        <div class="lock-panel">
-            <h2>Observer Authentication</h2>
-            <form id="auth-form">
-                <input type="password" id="access-key" placeholder="Enter Observer Key" autocomplete="off" />
-                <button id="unlock-btn" type="submit">Unlock</button>
-            </form>
-            <p id="error-message" class="error"></p>
-        </div>
-    </div>
+    <section id="lock-screen">
+        <h1>Lap-line observer</h1>
+        <form id="key-form">
+            <input id="access-key" class="input1" type="password" placeholder="Enter access key" autocomplete="off" />
+            <button id="unlock-btn" class="button1" type="submit">Unlock</button>
+        </form>
+        <p class="error1" id="error-message"></p>
+    </section>
 
     <!-- Lap Tracker Panel (hidden until authenticated) -->
     <div id="lap-tracker-panel" hidden>
