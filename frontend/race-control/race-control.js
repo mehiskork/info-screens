@@ -59,7 +59,7 @@ form.addEventListener("submit", (e) => {
     socket.on("connect", () => {
         //console.log("Connected as safety:", socket.id)
 
-        const s = state?.raceStatus
+
 
         setupSocketEvents()
 
