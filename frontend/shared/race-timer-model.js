@@ -1,4 +1,4 @@
-window.createRaceTimerModel = function ({ onTick = () => {}, showHundredths = false } = {}) {
+window.createRaceTimerModel = function ({ onTick = () => { }, showHundredths = false } = {}) {
     let endTime = null
     let active = false
     let mode = "danger"
@@ -23,7 +23,7 @@ window.createRaceTimerModel = function ({ onTick = () => {}, showHundredths = fa
         const hund = Math.floor((remainingMs % 1000) / 10)
         return (
             String(min).padStart(2, "0") + ":" +
-            String(sec).padStart(2, "0") + ":" +
+            String(sec).padStart(2, "0") + "." +
             String(hund).padStart(2, "0")
         )
     }
