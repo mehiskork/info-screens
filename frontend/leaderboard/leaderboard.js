@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (race && race.lastFinishedRace && race.lastFinishedRace.drivers) {
                 const leaderboard = buildLeaderboardFromRaw(race.lastFinishedRace);
                 if (leaderboard.length > 0) {
-                    renderLeaderboard(leaderboard);
+                    renderLeaderboard(leaderboard, true); // RT80
                     emptyState.hidden = true;
                     leaderboardCard.hidden = false;
                 } else {
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             flagStatus.className = 'meta-box ' + mode;
         }
         if (data.leaderboard) {
-            renderLeaderboard(data.leaderboard.leaderboard);
+            renderLeaderboard(data.leaderboard.leaderboard, false); // RT80
             emptyState.hidden = true;
             leaderboardCard.hidden = false;
         }
@@ -149,17 +149,10 @@ document.addEventListener('DOMContentLoaded', () => {
         timerDisplay.innerText = "00:00";
         flagStatus.innerText = "DANGER"; // punane danger lipp peale sessiooni lõppu ✅
         flagStatus.className = 'meta-box danger'; // punane taust ✅
-        // RT71: kuvab lõppenud ralli edetabeli sessiooni lõpp režiimis
-        const tbody = document.getElementById('leaderboard-data');
-        if (tbody) {
-            const rows = tbody.querySelectorAll('tr');
-            rows.forEach(row => {
-                const lapsCell = row.querySelector('td:last-child');
-                if (lapsCell) {
-                    const currentLap = parseInt(lapsCell.innerText) || 0;
-                    lapsCell.innerText = Math.max(0, currentLap - 1); // RT71: lõpetatud ringid = currentLap - 1
-                }
-            });
+        // RT80 - Backend data kasutamine
+        if (race && race.lastFinishedRace) {
+            const leaderboard = buildLeaderboardFromRaw(race.lastFinishedRace);
+            renderLeaderboard(leaderboard, true); // 
         }
     });
 
