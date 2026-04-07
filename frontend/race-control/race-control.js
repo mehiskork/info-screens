@@ -57,95 +57,10 @@ form.addEventListener("submit", (e) => {
     })
 
     socket.on("connect", () => {
-<<<<<<< HEAD
         //console.log("Connected as safety:", socket.id)
-=======
-        console.log("Connected as safety:", socket.id)
 
-        setupSocketEvents()
+        const s = state?.raceStatus
 
-
-        socket.on("connect_error", (err) => {
-            console.log("CONNECT ERROR:", err.message)
-
-            if (err.message === "xhr poll error") {
-                errorMessage.textContent = "Cannot connect to server"
-            } else {
-                errorMessage.textContent = "Invalid safety key"
-            }
-        })
-    })
-
-    // SAFE EMIT
-    function emitSafe(event, data, callback) {
-        if (!socket || !socket.connected) {
-            alert("Not connected")
-            return
-        }
-        socket.emit(event, data, callback)
-    }
-
-    // BUTTONS
-    startBtn.onclick = () => {
-        socket.emit("getNextRace", (res) => {
-            if (!res?.success) {
-                alert("No upcoming race")
-                return
-            }
-
-            const race = res.data
-
-            lastActive = true
-
-            renderCurrentRace(race)
-            updateUIState(true, "safe")
-
-            emitSafe("race:start", { sessionId: race.id }, (res) => {
-                if (!res.success) alert(res.error)
-            })
-        })
-    }
-
-    safeBtn.onclick = () => setMode("safe")
-    hazardBtn.onclick = () => setMode("hazard")
-    dangerBtn.onclick = () => setMode("danger")
-    finishBtn.onclick = () => setMode("finish")
-
-    function setMode(mode) {
-        if (raceFinished) return
-
-        emitSafe("race:changeMode", { mode }, (res) => {
-            console.log("MODE:", mode, res)
-            if (!res.success) alert(res.error)
-        })
-    }
-
-    // END SESSION
-    endSessionBtn.onclick = () => {
-        if (!socket || !socket.connected) return
-
-        socket.emit("race:endSession", (res) => {
-            console.log("END SESSION:", res)
-            if (!res.success) alert(res.error)
-        })
-    }
-
-
-
-    // SOCKET EVENTS
-    function setupSocketEvents() {
-
-        socket.on("race:statusSnapshot", (state) => {
-            hasInitialState = true
-
-            lockScreen.style.display = "none"
-            racePanel.style.display = "block"
-            racePanel.style.visibility = "visible"
->>>>>>> 6b489cf4c1f073981069b3a93a6d90617c3de97e
-
-            const s = state?.raceStatus
-
-<<<<<<< HEAD
         setupSocketEvents()
 
 
@@ -228,8 +143,6 @@ form.addEventListener("submit", (e) => {
 
             const s = state?.raceStatus
 
-=======
->>>>>>> 6b489cf4c1f073981069b3a93a6d90617c3de97e
             if (!s) {
                 setIdle()
                 updateUIState(false, "")
@@ -318,11 +231,7 @@ form.addEventListener("submit", (e) => {
             return
         }
 
-<<<<<<< HEAD
         status.innerText = mode.toUpperCase()
-=======
-        status.innerText = "Mode: " + mode.toUpperCase()
->>>>>>> 6b489cf4c1f073981069b3a93a6d90617c3de97e
 
 
         if (mode === "safe") status.style.color = "lime"
@@ -424,11 +333,7 @@ form.addEventListener("submit", (e) => {
 
     startTimerLoop()
 
-<<<<<<< HEAD
     // UI
-=======
-    //UI
->>>>>>> 6b489cf4c1f073981069b3a93a6d90617c3de97e
     function updateUIState(hasActiveRace, mode) {
 
         if (!hasInitialState) return
@@ -501,8 +406,4 @@ form.addEventListener("submit", (e) => {
         if (!nextRaceEl) return
         nextRaceEl.style.display = show ? "block" : "none"
     }
-<<<<<<< HEAD
 })
-=======
-})
->>>>>>> 6b489cf4c1f073981069b3a93a6d90617c3de97e
