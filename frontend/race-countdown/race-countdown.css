@@ -1,10 +1,39 @@
+/* fullscreen button */
+.button1 {
+    background: #111;
+    border: 2px solid #333;
+    border-radius: 12px;
+    color: white;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 0.8rem 1.25rem;
+    transition: all 0.2s;
+}
+
+.button1:hover {
+    background: #222;
+    border-color: white;
+}
+
+.button1:active {
+    transform: scale(0.97);
+    background: white;
+    color: black;
+}
+
+.button1:focus-visible {
+    outline: 2px solid var(--foreground);
+    outline-offset: 2px;
+}
+
 #fullscreen-btn {
     position: fixed;
     top: 20px;
     right: 20px;
-
+    backdrop-filter: blur(6px);
     z-index: 9999;
-
     opacity: 0.6;
 }
 
@@ -13,14 +42,13 @@ body:hover #fullscreen-btn {
 }
 
 
-
 .fullscreen-mode {
     cursor: none;
 }
 
 body {
     margin: 0;
-    background: black;
+    background: #0a0a0a;
     color: white;
     font-family: Arial;
 }
