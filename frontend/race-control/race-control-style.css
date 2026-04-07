@@ -1,3 +1,9 @@
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
 :root {
     --radius: 10px;
 }
@@ -15,8 +21,7 @@
     --input-background: oklch(0.269 0 0);
 }
 
-
-
+/* Base layout */
 body {
     margin: 0;
     height: 100vh;
@@ -25,23 +30,16 @@ body {
     align-items: center;
     padding-top: 20px;
     font-size: 16px;
-    font-family: Arial;
+    font-family: Arial, sans-serif;
     color: white;
     background: black;
-
 }
 
-
-
-#race-panel button {
-    align-self: center;
-}
+/* RACE PANEL (SCOPED) */
 
 #race-panel {
     width: min(420px, 90vw);
-
-    padding: 20px;
-    padding-top: 2px;
+    padding: 20px 20px 20px 20px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -49,160 +47,124 @@ body {
     background: #111;
     border-radius: 16px;
     border: 1px solid #333;
-
 }
 
-
-
-.mode-buttons {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-    width: 100%;
-    justify-items: center;
+#race-panel button {
+    align-self: center;
 }
 
+/* Title */
+#race-panel h2 {
+    text-align: center;
+    font-size: 48px;
+    letter-spacing: 2px;
+    margin: 4px;
+}
 
+/* BUTTONS */
 
-.button1 {
+#race-panel .button1 {
     width: 100%;
     padding: 16px;
     border-radius: 12px;
     font-size: 22px;
     font-weight: 700;
-}
 
-.button1,
-.main-action button,
-#end-session {
     border: 1px solid #333;
     box-shadow: none;
     outline: none;
 }
 
-
-
-
-.button1:hover {
+#race-panel .button1:hover {
     background-color: #374151;
     transform: scale(1.03);
 }
 
-.finish:hover {
-    filter: brightness(0.5);
-}
-
-.mode-buttons {
+/* Mode buttons grid */
+#race-panel .mode-buttons {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 10px;
     margin-top: 4px;
+    width: 100%;
+    justify-items: center;
 }
 
-.safe {
+/* Mode colors */
+#race-panel .safe {
     background: rgb(49, 176, 2);
 }
 
-.hazard {
+#race-panel .hazard {
     background: hsl(58, 96%, 53%);
     color: black;
 }
 
-.danger {
+#race-panel .danger {
     background: #dc2626;
 }
 
-.finish {
+#race-panel .finish {
     color: red;
-    font: bold;
     font-size: 25px;
-
     background:
-        repeating-conic-gradient(black 0% 25%,
-            white 0% 50%) 0 0 / 32px 32px;
+        repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 32px 32px;
 }
 
-
-
-.error1 {
-    color: crimson;
+#race-panel .finish:hover {
+    filter: brightness(0.5);
 }
 
+/* STATUS + TIMER */
 
-
-#race-panel h2 {
-    text-align: center;
-    font-size: 60px;
-    letter-spacing: 2px;
-    margin: 4px;
-
-
-
-}
-
-.top-row {
+#race-panel .top-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-bottom: 4px;
 }
 
-#race-status,
-#mini-timer {
+#race-panel #race-status,
+#race-panel #mini-timer {
     width: 100%;
     padding: 16px;
     font-size: 22px;
     text-align: center;
     border-radius: 12px;
     background: #222;
-    box-sizing: border-box;
     font-weight: 600;
     border: 1px solid #333;
-
 }
 
+/* MAIN ACTION BUTTONS */
 
-
-.main-action {
+#race-panel .main-action {
     display: flex;
     justify-content: center;
     margin-top: auto;
 }
 
-.main-action button {
-    width: 110px;
-    height: 110px;
-    border-radius: 50%;
-    font-size: 25px;
-    margin-top: 8px;
-
-
-
-}
-
-.main-action button,
-#end-session {
+#race-panel .main-action button,
+#race-panel #end-session {
     width: 140px;
     height: 140px;
     border-radius: 50%;
     font-size: 25px;
     margin-top: 8px;
-
 }
 
-#start {
+#race-panel #start {
     background: #16a34a;
 }
 
-#end-session {
+#race-panel #end-session {
     background: #dc2626;
     display: none;
 }
 
+/* NEXT RACE */
 
-
-
-#next-race {
+#race-panel #next-race {
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -215,7 +177,7 @@ body {
     margin-top: 10px;
 }
 
-.driver-row {
+#race-panel .driver-row {
     display: grid;
     grid-template-columns: 70px 1fr;
     align-items: center;
@@ -226,10 +188,9 @@ body {
     background: #111;
     border: 1px solid #333;
     margin: 6px;
-
 }
 
-.driver-badge {
+#race-panel .driver-badge {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -242,29 +203,30 @@ body {
     border: 1px solid #333;
 }
 
-.driver-name {
+#race-panel .driver-name {
     font-size: 18px;
 }
 
-.info-box {
+/* INFO BOX (if used) */
+
+#race-panel .info-box {
     width: 100%;
     padding: 16px;
     font-size: 22px;
     text-align: center;
     border-radius: 12px;
     background: #222;
-    box-sizing: border-box;
     font-weight: 600;
 }
 
-
+/* RESPONSIVE */
 
 @media (max-width: 600px) {
-    .mode-buttons {
+    #race-panel .mode-buttons {
         grid-template-columns: 1fr;
     }
 
-    .button1 {
+    #race-panel .button1 {
         font-size: 18px;
     }
 
@@ -274,83 +236,11 @@ body {
 }
 
 @media (min-width: 900px) {
-
     #race-panel {
         max-width: 700px;
     }
 
-    .mode-buttons {
+    #race-panel .mode-buttons {
         grid-template-columns: repeat(2, 1fr);
     }
-}
-
-/* Lock Screen Styles */
-#lock-screen {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: var(--background);
-}
-
-.lock-panel form {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.lock-panel {
-    width: 100%;
-    max-width: 400px;
-    padding: 32px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--card);
-    color: var(--card-foreground);
-
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    align-items: stretch;
-}
-
-.lock-panel h2 {
-    text-align: center;
-    width: 100%;
-    margin: 0;
-    font-size: 32px;
-    letter-spacing: 2px;
-}
-
-.lock-panel input {
-    width: 100%;
-    height: 52px;
-    padding: 12px;
-    font-size: 18px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--input-background);
-    color: var(--foreground);
-    box-sizing: border-box;
-}
-
-.lock-panel button {
-    width: 100%;
-    height: 52px;
-    padding: 12px;
-    border-radius: 12px;
-    font-size: clamp(16px, 2vw, 24px);
-    box-sizing: border-box;
-}
-
-.error {
-    color: crimson;
-    font-size: 16px;
-    min-height: 20px;
-    text-align: center;
 }

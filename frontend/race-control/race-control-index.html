@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Race Control</title>
+    <link rel="stylesheet" href="/frontend/shared/lock-screen.css">
     <link rel="stylesheet" href="/frontend/race-control/race-control-style.css">
 </head>
 
@@ -13,24 +14,22 @@
 
     <!-- Race Control Panel (hidden until authenticated) -->
 
-    <div id="lock-screen">
-        <div class="lock-panel">
-            <h2>Safety official authentication</h2>
-            <form id="auth-form">
-                <input type="password" id="access-key" placeholder="Enter access Key" />
-                <button id="unlock-btn" class="button1" type="submit">Unlock</button>
-            </form>
-            <p id="error-message" class="error"></p>
-        </div>
-    </div>
+    <section id="lock-screen">
+        <h1>Safety Official</h1>
+        <form id="key-form">
+            <input type="password" id="access-key" placeholder="Enter access Key" />
+            <button id="unlock-btn" class="button1" type="submit">Unlock</button>
+        </form>
+        <p id="error-message" class="error1"></p>
+    </section>
 
-    <!-- Race Control Panel -->
+
     <div id="race-panel" style="display:none;">
         <h2>Race Control</h2>
 
         <div class="top-row">
             <div id="race-status">---</div>
-            <div id="mini-timer">00:00:00</div>
+            <div id="mini-timer">00:00.00</div>
         </div>
 
         <div class="main-action">
@@ -44,8 +43,6 @@
             <button id="danger" class="button1 danger">DANGER</button>
             <button id="finish" class="button1 finish">FINISH</button>
         </div>
-
-
 
         <div id="next-race">
             <div id="next-race-title">Next: ---</div>
