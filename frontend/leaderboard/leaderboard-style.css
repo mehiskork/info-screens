@@ -64,7 +64,7 @@ body:fullscreen {
 .safe,
 .racing {
     background-color: green !important;
-    color: white;
+    color: black;
 }
 
 .hazard {
@@ -76,7 +76,7 @@ body:fullscreen {
 .danger,
 .paused {
     background-color: #ff0000 !important;
-    color: white;
+    color: black;
 
 }
 
