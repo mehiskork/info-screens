@@ -56,29 +56,33 @@ form.addEventListener("submit", (e) => {
         }
     })
 
+    socket.on("connect_error", (err) => {
+        //console.log("CONNECT ERROR:", err.message)
+
+        if (err.message === "xhr poll error") {
+            errorMessage.textContent = "Cannot connect to server"
+        } else {
+            errorMessage.textContent = "Invalid access key"
+        }
+    })
+
     socket.on("connect", () => {
-        //console.log("Connected as safety:", socket.id)
-
-
-
+        errorMessage.textContent = ""
+        clearError()
         setupSocketEvents()
 
 
-        socket.on("connect_error", (err) => {
-            //console.log("CONNECT ERROR:", err.message)
-
-            if (err.message === "xhr poll error") {
-                errorMessage.textContent = "Cannot connect to server"
-            } else {
-                errorMessage.textContent = "Invalid safety key"
-            }
-        })
     })
+
+    socket.on("disconnect", () => {
+        showError("Server disconnected")
+    })
+
 
     // SAFE EMIT
     function emitSafe(event, data, callback) {
         if (!socket || !socket.connected) {
-            alert("Not connected")
+            showError("Not connected")
             return
         }
         socket.emit(event, data, callback)
@@ -88,7 +92,7 @@ form.addEventListener("submit", (e) => {
     startBtn.onclick = () => {
         socket.emit("getNextRace", (res) => {
             if (!res?.success) {
-                alert("No upcoming race")
+                showError("No upcoming race")
                 return
             }
 
@@ -100,7 +104,7 @@ form.addEventListener("submit", (e) => {
             updateUIState(true, "safe")
 
             emitSafe("race:start", { sessionId: race.id }, (res) => {
-                if (!res.success) alert(res.error)
+                if (!res.success) showError(res.error)
             })
         })
     }
@@ -114,8 +118,8 @@ form.addEventListener("submit", (e) => {
         if (raceFinished) return
 
         emitSafe("race:changeMode", { mode }, (res) => {
-            console.log("MODE:", mode, res)
-            if (!res.success) alert(res.error)
+            //console.log("MODE:", mode, res)
+            if (!res.success) showError(res.error)
         })
     }
 
@@ -125,7 +129,7 @@ form.addEventListener("submit", (e) => {
 
         socket.emit("race:endSession", (res) => {
             console.log("END SESSION:", res)
-            if (!res.success) alert(res.error)
+            if (!res.success) showError(res.error)
         })
     }
 
@@ -382,8 +386,14 @@ form.addEventListener("submit", (e) => {
 
         if (!race) {
             titleEl.innerText = "No upcoming race"
+
+            startBtn.classList.add("disabled")
+            startBtn.disabled = true
             return
         }
+
+        startBtn.classList.remove("disabled")
+        startBtn.disabled = false
 
         titleEl.innerText = "Next: " + (race.name || "Session " + race.id)
 
@@ -406,4 +416,18 @@ form.addEventListener("submit", (e) => {
         if (!nextRaceEl) return
         nextRaceEl.style.display = show ? "block" : "none"
     }
+
+    function showError(msg) {
+        const el = document.getElementById("panel-error")
+        el.innerText = msg
+        el.style.display = "block"
+    }
+
+    function clearError() {
+        const el = document.getElementById("panel-error")
+        el.style.display = "none"
+    }
+
 })
+
+

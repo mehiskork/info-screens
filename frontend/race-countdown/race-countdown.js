@@ -33,10 +33,12 @@ fsBtn.addEventListener("click", () => {
 document.addEventListener("fullscreenchange", () => {
     if (document.fullscreenElement) {
         document.body.classList.add("fullscreen-mode")
-        fsBtn.style.display = "none"
+        fsBtn.style.opacity = "0"
+        fsBtn.style.pointerEvents = "none"
     } else {
         document.body.classList.remove("fullscreen-mode")
-        fsBtn.style.display = "block"
+        fsBtn.style.opacity = "0.6"
+        fsBtn.style.pointerEvents = "auto"
     }
 })
 
