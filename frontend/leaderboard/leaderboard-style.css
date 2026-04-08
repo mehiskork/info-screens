@@ -64,24 +64,24 @@ body:fullscreen {
 .safe,
 .racing {
     background-color: green !important;
-    color: black;
+    color: white;
 }
 
 .hazard {
-    background-color: hsl(58, 96%, 53%) !important;
+    background-color: #ffff00 !important;
     color: black;
 
 }
 
 .danger,
 .paused {
-    background-color: #dc2626 !important;
-    color: black;
+    background-color: #ff0000 !important;
+    color: white;
 
 }
 
 .finish {
-    color: #dc2626 !important;
+    color: #ff0000 !important;
     background: repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 20px 20px !important;
     text-shadow: 1px 1px 2px black;
 }
