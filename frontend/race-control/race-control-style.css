@@ -32,8 +32,10 @@ body {
     font-size: 16px;
     font-family: Arial, sans-serif;
     color: white;
-    background: black;
+    background: var(--background);
 }
+
+
 
 /* RACE PANEL (SCOPED) */
 
@@ -44,10 +46,12 @@ body {
     flex-direction: column;
     gap: 20px;
 
-    background: #111;
+    background: var(--background);
     border-radius: 16px;
     border: 1px solid #333;
 }
+
+
 
 #race-panel button {
     align-self: center;
@@ -124,14 +128,61 @@ body {
 }
 
 
-#race-panel .finish {
+/*#race-panel .finish {
     color: red;
     font-size: 25px;
     background: repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 32px 32px;
 
+}*/
+
+#race-panel .finish {
+    position: relative;
+
+    /* match other buttons */
+    padding: 16px;
+    font-size: 22px;
+    font-weight: 700;
+
+    border-radius: 12px;
+    border: 1px solid #333;
+
+    cursor: pointer;
+    overflow: hidden;
 }
 
+/* OUTER: chequered flag */
+#race-panel .finish::before {
+    content: "";
+    position: absolute;
+    inset: 0;
 
+    background: repeating-conic-gradient(black 0% 25%,
+            white 0% 50%) 0 0 / 30px 30px;
+
+    z-index: 0;
+}
+
+/* INNER BOX */
+#race-panel .finish::after {
+    content: "FINISH";
+    position: absolute;
+
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+
+    background: white;
+    color: black;
+
+    padding: 2px 8px;
+    border: 2px solid black;
+    border-radius: 6px;
+
+    font-weight: 760;
+    letter-spacing: 1px;
+    line-height: 1.2;
+    z-index: 1;
+}
 
 /* STATUS + TIMER */
 
