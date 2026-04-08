@@ -45,7 +45,6 @@ body {
     display: flex;
     flex-direction: column;
     gap: 20px;
-
     background: var(--background);
     border-radius: 16px;
     border: 1px solid #333;
@@ -203,7 +202,10 @@ body {
     background: #222;
     font-weight: 600;
     border: 1px solid #333;
+
 }
+
+
 
 /* MAIN ACTION BUTTONS */
 

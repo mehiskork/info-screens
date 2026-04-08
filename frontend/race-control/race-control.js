@@ -10,6 +10,7 @@ let cachedNextRace = null
 let lastFullRace = null
 let uiInitialized = false
 let hasInitialState = false
+let isAuthed = false
 
 // Lock screen
 const lockScreen = document.getElementById("lock-screen")
@@ -57,7 +58,11 @@ form.addEventListener("submit", (e) => {
     })
 
     socket.on("connect_error", (err) => {
-        //console.log("CONNECT ERROR:", err.message)
+
+        if (isAuthed) {
+            showLockScreen("Server disconnected")
+            return
+        }
 
         if (err.message === "xhr poll error") {
             errorMessage.textContent = "Cannot connect to server"
@@ -67,15 +72,27 @@ form.addEventListener("submit", (e) => {
     })
 
     socket.on("connect", () => {
+        isAuthed = true
+
         errorMessage.textContent = ""
         clearError()
+
+        showRacePanel()
+
         setupSocketEvents()
 
-
+        socket.emit("race:getStatus")
     })
 
     socket.on("disconnect", () => {
-        showError("Server disconnected")
+        hasInitialState = false
+
+        showLockScreen("Server disconnected")
+
+
+        lastMode = null
+        lastActive = null
+        lastRaceId = null
     })
 
 
@@ -141,9 +158,7 @@ form.addEventListener("submit", (e) => {
         socket.on("race:statusSnapshot", (state) => {
             hasInitialState = true
 
-            lockScreen.style.display = "none"
-            racePanel.style.display = "block"
-            racePanel.style.visibility = "visible"
+            showRacePanel()
 
             const s = state?.raceStatus
 
@@ -179,6 +194,7 @@ form.addEventListener("submit", (e) => {
                 }
             }
         })
+
 
         socket.on("race:modeChanged", (state) => {
             handleState(state?.raceStatus || state)
@@ -235,10 +251,12 @@ form.addEventListener("submit", (e) => {
             return
         }
 
-        status.innerText = mode.toUpperCase()
+        if (status.textContent !== mode.toUpperCase()) {
+            status.textContent = mode.toUpperCase()
+        }
 
 
-        if (mode === "safe") status.style.color = "lime"
+        if (mode === "safe") status.style.color = "#32cd32"
         else if (mode === "hazard") status.style.color = "yellow"
         else if (mode === "danger") status.style.color = "red"
         else if (mode === "finish") status.style.color = "white"
@@ -340,7 +358,6 @@ form.addEventListener("submit", (e) => {
     // UI
     function updateUIState(hasActiveRace, mode) {
 
-        if (!hasInitialState) return
 
         startBtn.style.display = "none"
         safeBtn.style.display = "none"
@@ -373,7 +390,6 @@ form.addEventListener("submit", (e) => {
 
     function renderNextRace(race) {
 
-        if (!hasInitialState) return
 
         if (lastActive === true) return
 
@@ -428,6 +444,18 @@ form.addEventListener("submit", (e) => {
         el.style.display = "none"
     }
 
+    function showLockScreen(message = "") {
+        lockScreen.style.display = "block"
+        racePanel.style.display = "none"
+
+        if (message) {
+            errorMessage.textContent = message
+        }
+    }
+
+    function showRacePanel() {
+        lockScreen.style.display = "none"
+        racePanel.style.display = "block"
+    }
+
 })
-
-
