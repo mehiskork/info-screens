@@ -26,7 +26,6 @@ It supports:
 - [Running the App](#running-the-app)
 - [Available Routes](#available-routes)
 - [How the System Works](#how-the-system-works)
-- [Demo Flow](#demo-flow)
 - [User Guide](#user-guide)
   - [Front Desk](#front-desk)
   - [Race Control](#race-control)
@@ -39,6 +38,7 @@ It supports:
 - [Extra Functionality](#extra-functionality)
 - [Security](#security)
 - [Socket.IO Event Notes](#socketio-event-notes)
+- [Authors](#authors)
 
 ---
 
@@ -635,9 +635,11 @@ The application uses Socket.IO for real-time updates between interfaces.
 - leaderboard events
 - next-race update events
 
+---
+
 ### Authors
 
-Elvis Rüütel
-Sten Martin Üürike
-Sven Kunsing
-Mehis Kork
+**Elvis Rüütel**
+**Sten Martin Üürike**
+**Sven Kunsing**
+**Mehis Kork**
