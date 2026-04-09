@@ -639,7 +639,7 @@ The application uses Socket.IO for real-time updates between interfaces.
 
 ### Authors
 
-**Elvis Rüütel**
-**Sten Martin Üürike**
-**Sven Kunsing**
+**Elvis Rüütel**<br>
+**Sten Martin Üürike**<br>
+**Sven Kunsing**<br>
 **Mehis Kork**
