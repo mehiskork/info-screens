@@ -3,7 +3,7 @@
  * Step-by-step implementation
  */
 
-const { 
+const {
   getAllSessions,
   addSession,
   addDriver,
@@ -130,10 +130,10 @@ function getLifecyclePayload() {
     lastFinishedRace: lastFinishedRace.success ? lastFinishedRace.race : null,
     frozenSnapshot: isFrozenSnapshot
       ? {
-          race: lastFinishedRace.success ? lastFinishedRace.race : null,
-          leaderboard: leaderboardUpdate ? leaderboardUpdate.leaderboard : null,
-          lapDisplayMode: 'completedLaps'
-        }
+        race: lastFinishedRace.success ? lastFinishedRace.race : null,
+        leaderboard: leaderboardUpdate ? leaderboardUpdate.leaderboard : null,
+        lapDisplayMode: 'completedLaps'
+      }
       : null
   }
 }
@@ -235,7 +235,7 @@ function broadcastState(io) {
     emitRaceStatus(io, { includeLifecycle: false })
     return
   }
-  
+
   const race = result.race
 
   const now = Date.now()
@@ -310,7 +310,7 @@ function initializeSocketHandlers(io) {
   io.on('connection', (socket) => {
     console.log('Client connected:', socket.id, 'role:', socket.data.role)
     emitRaceSnapshot(socket)
-    
+
     // Get all sessions
     socket.on('getSessions', (callback) => {
       if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
@@ -320,16 +320,16 @@ function initializeSocketHandlers(io) {
       callback({ success: true, sessions })
     })
 
-    socket.on('allTimeLeaderboard:get', (callback = () => {}) => {
+    socket.on('allTimeLeaderboard:get', (callback = () => { }) => {
       const result = getAllTimeLeaderboardTopTen()
       callback(result)
     })
 
-    socket.on('allTimeLeaderboard:historySummary:get', (callback = () => {}) => {
+    socket.on('allTimeLeaderboard:historySummary:get', (callback = () => { }) => {
       const result = getAllTimeLapHistorySummary()
       callback(result)
     })
-    
+
     // Add a new session
     socket.on('session:add', (callback) => {
       if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
@@ -340,7 +340,7 @@ function initializeSocketHandlers(io) {
       // Broadcast that the next race queue has changed
       io.emit('nextRace:changed')
     })
-    
+
     // Add a driver to a session
     socket.on('driver:add', (data, callback) => {
       if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
@@ -354,7 +354,7 @@ function initializeSocketHandlers(io) {
         io.emit('nextRace:changed')
       }
     })
-    
+
     // Remove a session
     socket.on('session:remove', (data, callback) => {
       if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
@@ -368,7 +368,7 @@ function initializeSocketHandlers(io) {
         io.emit('nextRace:changed')
       }
     })
-    
+
     // Remove a driver from a session
     socket.on('driver:remove', (data, callback) => {
       if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
@@ -382,7 +382,7 @@ function initializeSocketHandlers(io) {
         io.emit('nextRace:changed')
       }
     })
-    
+
     // Update a driver in a session
     socket.on('driver:update', (data, callback) => {
       if (!isAuthorized(socket, ROLE.RECEPTIONIST)) {
@@ -396,7 +396,7 @@ function initializeSocketHandlers(io) {
         io.emit('nextRace:changed')
       }
     })
-    
+
     // Authenticate receptionist
     socket.on('auth:receptionist', (data, callback) => {
       if (typeof callback !== 'function') {
@@ -408,7 +408,7 @@ function initializeSocketHandlers(io) {
         error: 'Deprecated. Authenticate in Socket.IO handshake via auth.role and auth.accessKey.'
       })
     })
-    
+
     // Authenticate safety official
     socket.on('auth:safety', (data, callback) => {
       if (typeof callback !== 'function') {
@@ -420,7 +420,7 @@ function initializeSocketHandlers(io) {
         error: 'Deprecated. Authenticate in Socket.IO handshake via auth.role and auth.accessKey.'
       })
     })
-    
+
     // Authenticate lap-line observer
     socket.on('auth:observer', (data, callback) => {
       if (typeof callback !== 'function') {
@@ -432,13 +432,38 @@ function initializeSocketHandlers(io) {
         error: 'Deprecated. Authenticate in Socket.IO handshake via auth.role and auth.accessKey.'
       })
     })
-    
+
     // Get the next race session
     socket.on('getNextRace', (callback) => {
       const result = getNextRaceSession()
       callback(result)
     })
-    
+
+    // START LIGHTS EVENTS
+    socket.on("startLights:begin", () => {
+      let step = 0
+
+      io.emit("startLights:begin") // tell UI to reset
+
+      const interval = setInterval(() => {
+        if (step < 5) {
+          step++
+          io.emit("startLights:step", step)
+        } else {
+          clearInterval(interval)
+
+          //console.log("EMIT startLights:ready")   // 👈 ADD THIS
+
+          // enable second click
+          io.emit("startLights:ready")
+        }
+      }, 1000)
+    })
+
+    socket.on("startLights:go", () => {
+      io.emit("startLights:go")
+    })
+
     // Start a race
     socket.on('race:start', (data, callbackParam) => {
       const callback = typeof callbackParam === 'function'
@@ -451,8 +476,8 @@ function initializeSocketHandlers(io) {
 
       // Handle both old format (no data) and new format (with sessionId)
       let sessionId = null
-      let raceStartCallback = callback || (() => {})
-      
+      let raceStartCallback = callback || (() => { })
+
       // If data is a function, it's the callback (old format with no sessionId)
       if (typeof data === 'function') {
         raceStartCallback = data
@@ -474,7 +499,7 @@ function initializeSocketHandlers(io) {
           return raceStartCallback({ success: false, error: 'No sessions available to start' })
         }
       }
-      
+
       const result = startRace(sessionId)
       raceStartCallback(result)
       // Broadcast if race started successfully (next race in queue changes)
@@ -487,9 +512,9 @@ function initializeSocketHandlers(io) {
         broadcastState(io)
       }
     })
-    
+
     // Change race mode (accepts both race:changeMode and race:mode:set for compatibility)
-    socket.on('race:changeMode', (data = {}, callback = () => {}) => {
+    socket.on('race:changeMode', (data = {}, callback = () => { }) => {
       if (!isAuthorized(socket, ROLE.SAFETY)) {
         return rejectUnauthorized(callback, ROLE.SAFETY)
       }
@@ -497,11 +522,11 @@ function initializeSocketHandlers(io) {
       if (!data.mode) {
         return callback({ success: false, error: 'Mode required' })
       }
-      
+
       // Convert mode to lowercase for internal use
       const mode = data.mode.toLowerCase()
       const result = changeRaceMode(mode)
-      
+
       if (result.success) {
         io.emit('race:modeChanged', { mode })
         if (mode === 'finish') {
@@ -514,12 +539,12 @@ function initializeSocketHandlers(io) {
         emitRaceStatus(io)
         broadcastState(io)
       }
-      
+
       callback(result)
     })
-    
+
     // Legacy event name support (race:mode:set) - frontend uses this
-    socket.on('race:mode:set', (mode, callback = () => {}) => {
+    socket.on('race:mode:set', (mode, callback = () => { }) => {
       if (!isAuthorized(socket, ROLE.SAFETY)) {
         return rejectUnauthorized(callback, ROLE.SAFETY)
       }
@@ -527,11 +552,11 @@ function initializeSocketHandlers(io) {
       if (!mode) {
         return callback({ success: false, error: 'Mode required' })
       }
-      
+
       // Convert mode to lowercase for internal use
       const modeLower = mode.toLowerCase()
       const result = changeRaceMode(modeLower)
-      
+
       if (result.success) {
         io.emit('race:modeChanged', { mode: modeLower })
         if (modeLower === 'finish') {
@@ -544,12 +569,12 @@ function initializeSocketHandlers(io) {
         emitRaceStatus(io)
         broadcastState(io)
       }
-      
+
       callback(result)
     })
-    
+
     // End race session (after cars return to pit lane)
-    socket.on('session:end', (callback = () => {}) => {
+    socket.on('session:end', (callback = () => { }) => {
       if (!isAuthorized(socket, ROLE.SAFETY)) {
         return rejectUnauthorized(callback, ROLE.SAFETY)
       }
@@ -557,7 +582,7 @@ function initializeSocketHandlers(io) {
       const raceStatusBeforeEnd = getCurrentRaceStatus()
       const endedSessionId = raceStatusBeforeEnd.success ? raceStatusBeforeEnd.race.sessionId : null
       const result = endSession()
-      
+
       if (result.success) {
         io.emit('race:sessionEnded', {
           sessionId: endedSessionId,
@@ -569,12 +594,12 @@ function initializeSocketHandlers(io) {
         emitLeaderboardUpdated(io)
         broadcastState(io)
       }
-      
+
       callback(result)
     })
-    
+
     // Legacy event name support (race:endSession) - frontend uses this
-    socket.on('race:endSession', (callback = () => {}) => {
+    socket.on('race:endSession', (callback = () => { }) => {
       if (!isAuthorized(socket, ROLE.SAFETY)) {
         return rejectUnauthorized(callback, ROLE.SAFETY)
       }
@@ -582,7 +607,7 @@ function initializeSocketHandlers(io) {
       const raceStatusBeforeEnd = getCurrentRaceStatus()
       const endedSessionId = raceStatusBeforeEnd.success ? raceStatusBeforeEnd.race.sessionId : null
       const result = endSession()
-      
+
       if (result.success) {
         io.emit('race:sessionEnded', {
           sessionId: endedSessionId,
@@ -594,20 +619,20 @@ function initializeSocketHandlers(io) {
         emitLeaderboardUpdated(io)
         broadcastState(io)
       }
-      
+
       callback(result)
     })
-    
+
     // Get current race status
     socket.on('getRaceStatus', (callback) => {
       const result = getCurrentRaceStatus()
       callback(result)
     })
 
-    socket.on('getRaceLifecycle', (callback = () => {}) => {
+    socket.on('getRaceLifecycle', (callback = () => { }) => {
       callback({ success: true, ...getLifecyclePayload() })
     })
-    
+
     // Record lap crossing
     socket.on('lap:crossing', (data, callback) => {
       if (!isAuthorized(socket, ROLE.OBSERVER)) {
@@ -648,13 +673,13 @@ function initializeSocketHandlers(io) {
         emitLifecycle(io)
       }
     })
-    
+
     // Get leaderboard
     socket.on('getLeaderboard', (callback) => {
       const result = getLeaderboard()
       callback(result)
     })
-    
+
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id)
     })
