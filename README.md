@@ -690,6 +690,8 @@ Example employee routes:
 - `https://racetrack.portu.ee/lap-line-tracker`
 
 
+Autentication:
+
 - RECEPTIONIST_KEY=kesa1as
 - BSERVER_KEY=mut1onu
 - SAFETY_KEY=p6dramaja
