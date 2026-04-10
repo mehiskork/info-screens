@@ -693,7 +693,7 @@ Example employee routes:
 Autentication:
 
 - RECEPTIONIST_KEY=kesa1as
-- BSERVER_KEY=mut1onu
+- OBSERVER_KEY=mut1onu
 - SAFETY_KEY=p6dramaja
 
 ### Authors
