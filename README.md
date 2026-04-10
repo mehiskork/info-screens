@@ -12,6 +12,7 @@ It supports:
 - lap-line tracking with large car buttons
 - real-time leaderboard and public displays
 - persisted state across server restarts
+- bonus start-lights display for race start sequence
 
 ---
 
@@ -34,10 +35,12 @@ It supports:
   - [Next Race](#next-race)
   - [Race Countdown](#race-countdown)
   - [Race Flags](#race-flags)
+  - [Start Lights](#start-lights)
 - [Persistence](#persistence)
 - [Extra Functionality](#extra-functionality)
 - [Security](#security)
 - [Socket.IO Event Notes](#socketio-event-notes)
+- [Deployment](#deployment)
 - [Authors](#authors)
 
 ---
@@ -134,7 +137,8 @@ The system is designed around the race lifecycle:
 │   ├── race-control/
 │   ├── race-countdown/
 │   ├── race-flags/
-│   └── shared/
+│   ├── shared/
+│   └── start-lights/
 ├── package.json
 └── README.md
 ```
@@ -257,6 +261,7 @@ http://localhost:3000/front-desk
 | Next Race | Race Driver | `/next-race` |
 | Race Countdown | Race Driver | `/race-countdown` |
 | Race Flags | Race Driver | `/race-flags` |
+| Start Lights | Race Driver / Public display | `/start-lights` |
 
 ### Additional backend routes
 
@@ -542,6 +547,29 @@ Shows the current race mode as a visual flag display.
 
 ---
 
+## Start Lights
+
+**Route:** `/start-lights`  
+**Persona:** Race Driver / Public display
+
+### Purpose
+
+Shows a visual race start-light sequence as an additional public display.
+
+### Behavior
+
+- stays in an idle screen until triggered from Race Control
+- shows a 5-light countdown sequence
+- switches to a green “go” state
+- resets back to idle after the sequence
+- supports fullscreen mode for display use
+
+### Notes
+
+This is bonus functionality and is not required for the core MVP flow. It does not replace the required race control, flag, countdown, next-race, or leaderboard screens.
+
+---
+
 ## Persistence
 
 This project implements persisted state as extra functionality.
@@ -586,6 +614,10 @@ The project persists its application state so that the server can restart withou
 ### Receptionist-selected cars
 
 Instead of relying on random allocation, the receptionist chooses the car number for each driver when setting up a session.
+
+### Start lights display
+
+The project includes an additional `/start-lights` public screen that can be triggered from Race Control to show a start-light sequence before the race begins.
 
 ### All-time lap data
 
@@ -636,6 +668,31 @@ The application uses Socket.IO for real-time updates between interfaces.
 - next-race update events
 
 ---
+
+## Deployment
+
+Live deployment:
+
+- `https://racetrack.portu.ee`
+
+Example public routes:
+
+- `https://racetrack.portu.ee/leader-board`
+- `https://racetrack.portu.ee/next-race`
+- `https://racetrack.portu.ee/race-countdown`
+- `https://racetrack.portu.ee/race-flags`
+- `https://racetrack.portu.ee/start-lights`
+
+Example employee routes:
+
+- `https://racetrack.portu.ee/front-desk`
+- `https://racetrack.portu.ee/race-control`
+- `https://racetrack.portu.ee/lap-line-tracker`
+
+
+- RECEPTIONIST_KEY=kesa1as
+- BSERVER_KEY=mut1onu
+- SAFETY_KEY=p6dramaja
 
 ### Authors
 
