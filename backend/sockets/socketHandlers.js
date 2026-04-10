@@ -443,7 +443,7 @@ function initializeSocketHandlers(io) {
     socket.on("startLights:begin", () => {
       let step = 0
 
-      io.emit("startLights:begin") // tell UI to reset
+      io.emit("startLights:begin")
 
       const interval = setInterval(() => {
         if (step < 5) {
@@ -451,11 +451,6 @@ function initializeSocketHandlers(io) {
           io.emit("startLights:step", step)
         } else {
           clearInterval(interval)
-
-          //console.log("EMIT startLights:ready")   // 👈 ADD THIS
-
-          // enable second click
-          io.emit("startLights:ready")
         }
       }, 1000)
     })

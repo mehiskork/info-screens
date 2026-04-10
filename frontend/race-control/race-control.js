@@ -216,6 +216,9 @@ form.addEventListener("submit", (e) => {
         socket.on("startLights:begin", () => {
             showLights()
             resetLights()
+
+            lightsReady = false
+            startBtn.disabled = true
         })
 
         socket.on("startLights:step", (step) => {
@@ -226,6 +229,7 @@ form.addEventListener("submit", (e) => {
                 startBtn.disabled = false
             }
         })
+
 
         socket.on("startLights:go", () => {
             goLights()
@@ -451,9 +455,24 @@ form.addEventListener("submit", (e) => {
             startBtn.classList.add("disabled")
             startBtn.disabled = true
 
+            clearError()
+            return
+        }
+
+        const entries = race.entries || race.drivers || []
+
+
+        if (entries.length === 0) {
+            titleEl.innerText = "Next: " + (race.name || "Session " + race.id)
+
+            startBtn.classList.add("disabled")
+            startBtn.disabled = true
+
             showError("Cannot start race with no drivers")
             return
         }
+
+
 
         clearError()
 
@@ -462,16 +481,14 @@ form.addEventListener("submit", (e) => {
 
         titleEl.innerText = "Next: " + (race.name || "Session " + race.id)
 
-        const entries = race.entries || race.drivers || []
-
         entries.forEach(e => {
             const row = document.createElement("div")
             row.className = "driver-row"
 
             row.innerHTML = `
-            <div class="driver-badge">Car ${e.carNumber || "-"}</div>
-            <div class="driver-name">${e.driverName || e.name || "Driver"}</div>
-        `
+        <div class="driver-badge">Car ${e.carNumber || "-"}</div>
+        <div class="driver-name">${e.driverName || e.name || "Driver"}</div>
+    `
 
             listEl.appendChild(row)
         })

@@ -25,7 +25,7 @@ function goLights() {
     setTimeout(() => {
         resetLights()
 
-    }, 2600)
+    }, 3000)
 }
 
 // SOCKET EVENTS
@@ -49,7 +49,7 @@ socket.on("startLights:go", () => {
 
     setTimeout(() => {
         showIdle()
-    }, 1000)
+    }, 2500)
 })
 
 // FULLSCREEN
