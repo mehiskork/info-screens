@@ -28,6 +28,9 @@ const dangerBtn = document.getElementById("danger")
 const finishBtn = document.getElementById("finish")
 const endSessionBtn = document.getElementById("end-session")
 const miniTimer = document.getElementById("mini-timer")
+const lights = document.querySelectorAll(".mini-light")
+
+//document.querySelectorAll(".mini-light")
 
 // Info areas
 const nextRaceEl = document.getElementById("next-race")
@@ -106,7 +109,19 @@ form.addEventListener("submit", (e) => {
     }
 
     // BUTTONS
+    let lightsReady = false
+
     startBtn.onclick = () => {
+
+        if (!lightsReady) {
+            socket.emit("startLights:begin")
+            startBtn.disabled = true
+            return
+        }
+
+        // SECOND CLICK (only when ready)
+        socket.emit("startLights:go")
+
         socket.emit("getNextRace", (res) => {
             if (!res?.success) {
                 showError("No upcoming race")
@@ -115,15 +130,12 @@ form.addEventListener("submit", (e) => {
 
             const race = res.data
 
-            lastActive = true
-
-            renderCurrentRace(race)
-            updateUIState(true, "safe")
-
             emitSafe("race:start", { sessionId: race.id }, (res) => {
                 if (!res.success) showError(res.error)
             })
         })
+
+        lightsReady = false
     }
 
     safeBtn.onclick = () => setMode("safe")
@@ -200,6 +212,29 @@ form.addEventListener("submit", (e) => {
             handleState(state?.raceStatus || state)
         })
 
+
+        socket.on("startLights:begin", () => {
+            showLights()
+            resetLights()
+        })
+
+        socket.on("startLights:step", (step) => {
+            lights[step - 1].classList.add("on")
+
+            if (step === 5) {
+                lightsReady = true
+                startBtn.disabled = false
+            }
+        })
+
+        socket.on("startLights:go", () => {
+            goLights()
+
+            setTimeout(() => {
+                hideLights()
+            }, 2500)
+        })
+
         socket.on("race:finished", () => {
             raceFinished = true
         })
@@ -213,12 +248,22 @@ form.addEventListener("submit", (e) => {
 
         socket.on("nextRace:changed", () => {
             socket.emit("getNextRace", (res) => {
-                if (res?.success && res.data) {
-                    cachedNextRace = res.data
+                if (!res?.success || !res.data) {
+                    cachedNextRace = null
+                    renderNextRace(null)
+                    return
+                }
 
-                    if (!lastActive) {
-                        renderNextRace(cachedNextRace)
-                    }
+                cachedNextRace = res.data
+
+                const entries = res.data.entries || res.data.drivers || []
+
+                if (entries.length > 0) {
+                    clearError()
+                }
+
+                if (!lastActive) {
+                    renderNextRace(cachedNextRace)
                 }
             })
         })
@@ -405,8 +450,12 @@ form.addEventListener("submit", (e) => {
 
             startBtn.classList.add("disabled")
             startBtn.disabled = true
+
+            showError("Cannot start race with no drivers")
             return
         }
+
+        clearError()
 
         startBtn.classList.remove("disabled")
         startBtn.disabled = false
@@ -456,6 +505,33 @@ form.addEventListener("submit", (e) => {
     function showRacePanel() {
         lockScreen.style.display = "none"
         racePanel.style.display = "block"
+    }
+
+
+    function resetLights() {
+        lights.forEach(l => l.classList.remove("on", "go"))
+    }
+
+    function goLights() {
+        lights.forEach(l => {
+            l.classList.remove("on")
+            l.classList.add("go")
+        })
+    }
+
+
+    function showLights() {
+        document.getElementById("mini-lights").style.display = "flex"
+    }
+
+    function hideLights() {
+        const el = document.getElementById("mini-lights")
+        el.classList.add("hidden")
+
+        setTimeout(() => {
+            el.style.display = "none"
+            el.classList.remove("hidden")
+        }, 400)
     }
 
 })

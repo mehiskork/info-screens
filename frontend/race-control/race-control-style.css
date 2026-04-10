@@ -24,15 +24,10 @@
 /* Base layout */
 body {
     margin: 0;
-    height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding-top: 20px;
-    font-size: 16px;
-    font-family: Arial, sans-serif;
-    color: white;
+    min-height: 100vh;
     background: var(--background);
+    color: var(--foreground);
+    font-family: Arial, sans-serif;
 }
 
 
@@ -40,7 +35,8 @@ body {
 /* RACE PANEL (SCOPED) */
 
 #race-panel {
-    width: min(420px, 90vw);
+    width: min(420px, 95vw);
+    margin: 20px auto;
     padding: 20px 20px 20px 20px;
     display: flex;
     flex-direction: column;
@@ -63,6 +59,47 @@ body {
     letter-spacing: px;
     margin: 4px;
 
+}
+
+#race-panel #mini-lights {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* exactly 5 lights */
+    gap: 8px;
+    width: 100%;
+    margin: 10px 0;
+    padding: 0 20px;
+}
+
+#race-panel #mini-lights.hidden {
+    opacity: 0;
+}
+
+#race-panel .mini-light {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    /* perfect square */
+    border-radius: 50%;
+
+    background: var(--background);
+    border: none;
+    /* remove border */
+    box-shadow: none;
+    /* clean look */
+
+    transition: all 0.2s ease;
+}
+
+#race-panel .mini-light.on {
+    background: red;
+    box-shadow: 0 0 20px red;
+    opacity: 1;
+}
+
+#race-panel .mini-light.go {
+    background: lime;
+    box-shadow: 0 0 25px lime;
+    opacity: 1;
 }
 
 #panel-error {
@@ -127,12 +164,6 @@ body {
 }
 
 
-/*#race-panel .finish {
-    color: red;
-    font-size: 25px;
-    background: repeating-conic-gradient(black 0% 25%, white 0% 50%) 0 0 / 32px 32px;
-
-}*/
 
 #race-panel .finish {
     position: relative;

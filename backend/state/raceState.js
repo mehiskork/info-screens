@@ -8,6 +8,7 @@ const {
 // Hydrate in-memory state from local snapshot at process start.
 const state = loadPersistedRaceState()
 
+
 // If an active race expired while the server was down, normalize it to finish.
 if (reconcileRaceStateOnStartup(state, RACE_DURATION)) {
   savePersistedRaceState(state)
@@ -38,11 +39,11 @@ function addSession() {
     id: state.nextSessionId,
     drivers: []
   }
-  
+
   state.sessions.push(newSession)
   state.nextSessionId++
   persistState()
-  
+
   return { ...newSession }  // return a copy
 }
 
@@ -64,13 +65,13 @@ function getAllSessions() {
   const queuedSessions = state.sessions.filter(session => {
     return session.id !== state.currentRace.sessionId
   })
-  
+
   // Deep copy and sort drivers in each session
   const sessionsCopy = JSON.parse(JSON.stringify(queuedSessions))
   sessionsCopy.forEach(session => {
     sortDriversByCarNumber(session.drivers)
   })
-  
+
   return sessionsCopy
 }
 
@@ -91,51 +92,51 @@ function addDriver(sessionId, driverName, carNumber) {
   if (!driverName || typeof driverName !== 'string' || driverName.trim() === '') {
     return { success: false, error: 'Driver name is required' }
   }
-  
+
   // Validate car number is provided
   if (carNumber === undefined || carNumber === null) {
     return { success: false, error: 'Car number is required' }
   }
-  
+
   // Validate car number is a number
   const carNum = parseInt(carNumber, 10)
   if (isNaN(carNum)) {
     return { success: false, error: 'Car number must be a valid number' }
   }
-  
+
   // Validate car number is in valid range (1-8)
   if (carNum < 1 || carNum > 8) {
     return { success: false, error: 'Car number must be between 1 and 8' }
   }
-  
+
   // Find the session
   const session = getSessionById(sessionId)
   if (!session) {
     return { success: false, error: 'Session not found' }
   }
-  
+
   // Check if driver name already exists in this session
   const nameExists = session.drivers.some(d => d.name === driverName)
   if (nameExists) {
     return { success: false, error: 'Driver name must be unique in this session' }
   }
-  
+
   // Check if car number is already taken in this session
   const carTaken = session.drivers.some(d => d.carNumber === carNum)
   if (carTaken) {
     return { success: false, error: `Car ${carNum} is already assigned in this session` }
   }
-  
+
   // Check max drivers (8 cars available)
   if (session.drivers.length >= 8) {
     return { success: false, error: 'Session is full (max 8 drivers)' }
   }
-  
+
   // Add the driver with the specified car number
   const newDriver = { name: driverName, carNumber: carNum }
   session.drivers.push(newDriver)
   persistState()
-  
+
   return { success: true, driver: { ...newDriver } }
 }
 
@@ -145,7 +146,7 @@ function addDriver(sessionId, driverName, carNumber) {
  */
 function getNextRaceSession() {
   const showPaddock = state.endedSession !== null
-  
+
   // If no race is active, return the first queued session
   if (state.currentRace.sessionId === null) {
     if (state.sessions.length === 0) {
@@ -155,10 +156,10 @@ function getNextRaceSession() {
     sortDriversByCarNumber(session.drivers)
     return { success: true, state: 'upcoming', paddock: showPaddock, data: session }
   }
-  
+
   // If a race is active, find the next queued session after it
   const activeIndex = state.sessions.findIndex(s => s.id === state.currentRace.sessionId)
-  
+
   // If active session not found in queue (shouldn't happen), return first session
   if (activeIndex === -1) {
     if (state.sessions.length === 0) {
@@ -168,13 +169,13 @@ function getNextRaceSession() {
     sortDriversByCarNumber(session.drivers)
     return { success: true, state: 'upcoming', paddock: showPaddock, data: session }
   }
-  
+
   // Return the next session after the active one
   const nextIndex = activeIndex + 1
   if (nextIndex >= state.sessions.length) {
     return { success: false, error: 'No queued sessions' }
   }
-  
+
   const session = JSON.parse(JSON.stringify(state.sessions[nextIndex]))
   sortDriversByCarNumber(session.drivers)
   return { success: true, state: 'upcoming', paddock: showPaddock, data: session }
@@ -188,7 +189,7 @@ function removeSession(sessionId) {
   if (index === -1) {
     return { success: false, error: 'Session not found' }
   }
-  
+
   state.sessions.splice(index, 1)
   persistState()
   return { success: true }
@@ -202,12 +203,12 @@ function removeDriver(sessionId, driverName) {
   if (!session) {
     return { success: false, error: 'Session not found' }
   }
-  
+
   const index = session.drivers.findIndex(d => d.name === driverName)
   if (index === -1) {
     return { success: false, error: 'Driver not found' }
   }
-  
+
   session.drivers.splice(index, 1)
   persistState()
   return { success: true }
@@ -223,29 +224,29 @@ function updateDriver(sessionId, carNumber, newDriverName) {
   if (!newDriverName || typeof newDriverName !== 'string' || newDriverName.trim() === '') {
     return { success: false, error: 'Driver name is required' }
   }
-  
+
   // Find the session
   const session = getSessionById(sessionId)
   if (!session) {
     return { success: false, error: 'Session not found' }
   }
-  
+
   // Find the driver by car number
   const driver = session.drivers.find(d => d.carNumber === carNumber)
   if (!driver) {
     return { success: false, error: 'Driver not found in this session' }
   }
-  
+
   // Check if new name already exists (but allow same name if it's the same driver)
   const nameExists = session.drivers.some(d => d.name === newDriverName && d.carNumber !== carNumber)
   if (nameExists) {
     return { success: false, error: 'Driver name must be unique in this session' }
   }
-  
+
   // Update the driver name
   driver.name = newDriverName
   persistState()
-  
+
   return { success: true, driver: { ...driver } }
 }
 
@@ -305,22 +306,22 @@ function startRace(sessionId) {
   if (!session) {
     return { success: false, error: 'Session not found' }
   }
-  
+
   // Check if session has drivers
   if (session.drivers.length === 0) {
     return { success: false, error: 'Cannot start race with no drivers' }
   }
-  
+
   // Check if a race is already active
   if (state.currentRace.sessionId !== null) {
     return { success: false, error: 'A race is already in progress' }
   }
-  
+
   // Clear ended session when starting new race (paddock flow complete)
   state.endedSession = null
   // Finished snapshot is only kept until the next race starts.
   state.lastFinishedRace = null
-  
+
   // Initialize lap tracking for each car
   const laps = {}
   for (const driver of session.drivers) {
@@ -332,7 +333,7 @@ function startRace(sessionId) {
       finishLapCompleted: false
     }
   }
-  
+
   // Set up currentRace
   state.currentRace = {
     sessionId: sessionId,
@@ -342,7 +343,7 @@ function startRace(sessionId) {
     laps: laps
   }
   persistState()
-  
+
   return { success: true, race: JSON.parse(JSON.stringify(state.currentRace)) }
 }
 
@@ -356,7 +357,7 @@ function changeRaceMode(mode) {
   if (state.currentRace.sessionId === null) {
     return { success: false, error: 'No active race' }
   }
-  
+
   // Validate mode
   const validModes = ['safe', 'hazard', 'danger', 'finish']
   if (!validModes.includes(mode)) {
@@ -371,7 +372,7 @@ function changeRaceMode(mode) {
   if (state.currentRace.mode === 'finish' && mode === 'finish') {
     return { success: true, mode: state.currentRace.mode, message: 'Race is already in finish mode' }
   }
-  
+
   // Enter finish mode. Session remains active until endSession() is called.
   if (mode === 'finish') {
     state.currentRace.mode = 'finish'
@@ -380,11 +381,11 @@ function changeRaceMode(mode) {
 
     return { success: true, mode: state.currentRace.mode, message: 'Race finished - wait for session end confirmation' }
   }
-  
+
   // Update mode for non-finished states
   state.currentRace.mode = mode
   persistState()
-  
+
   return { success: true, mode: state.currentRace.mode }
 }
 
@@ -441,7 +442,7 @@ function getCurrentRaceStatus() {
       lastFinishedRace: hasFrozenSnapshot ? JSON.parse(JSON.stringify(state.lastFinishedRace)) : null
     }
   }
-  
+
   // Finish mode is a frozen post-race state while session is still active.
   // Status should always report 00:00 in this mode.
   const isFinishMode = state.currentRace.mode === 'finish'
@@ -449,7 +450,7 @@ function getCurrentRaceStatus() {
   const secondsRemaining = isFinishMode
     ? 0
     : Math.max(0, RACE_DURATION - elapsedSeconds)
-  
+
   // Return race data with time remaining
   return {
     success: true,
@@ -518,12 +519,12 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
   if (state.currentRace.sessionId === null) {
     return { success: false, error: 'No active race' }
   }
-  
+
   // Validate car number exists in this race
   if (!state.currentRace.laps[carNumber]) {
     return { success: false, error: 'Car not in this race' }
   }
-  
+
   const carLaps = state.currentRace.laps[carNumber]
   const isFinishMode = state.currentRace.mode === 'finish'
 
@@ -544,28 +545,28 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
       finishLapCompleted: true
     }
   }
-  
+
   // If this is the first crossing, just record the time
   if (carLaps.lastCrossTime === null) {
     carLaps.lastCrossTime = timestamp
     carLaps.currentLap = 1
     persistState()
-    return { 
-      success: true, 
+    return {
+      success: true,
       lap: 1,
       message: 'First lap started',
       finishLapCompleted: false
     }
   }
-  
+
   // Calculate lap time (time since last crossing)
   const lapTime = timestamp - carLaps.lastCrossTime
-  
+
   // Store lap time
   carLaps.lapTimes.push(lapTime)
   carLaps.currentLap++
   carLaps.lastCrossTime = timestamp
-  
+
   // Update best time if this is faster
   if (carLaps.bestTime === null || lapTime < carLaps.bestTime) {
     carLaps.bestTime = lapTime
@@ -576,7 +577,7 @@ function recordLapCrossing(carNumber, timestamp = Date.now()) {
   }
 
   persistState()
-  
+
   return {
     success: true,
     lap: carLaps.currentLap,
@@ -602,7 +603,7 @@ function getLeaderboard() {
   if (!leaderboard) {
     return { success: false, error: 'Race data is incomplete' }
   }
-  
+
   return {
     success: true,
     hasActiveRace,

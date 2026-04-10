@@ -13,6 +13,7 @@ const app = express()
 const server = http.createServer(app)
 const io = new Server(server)
 
+
 // Serve static files
 app.use(express.static('public'))
 
@@ -67,6 +68,10 @@ app.get('/all-time-best-laps', (req, res) => {
     success: false,
     message: 'Frontend view not implemented yet. Use /api/leaderboard/all-time.'
   })
+})
+
+app.get('/start-lights', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/start-lights/start-lights.html'))
 })
 
 // Initialize Socket.IO event handlers
