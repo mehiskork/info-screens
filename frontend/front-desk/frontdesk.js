@@ -316,12 +316,14 @@ function renderSessions(sessions) {
 
                 row.innerHTML = `
                 <span class="driver-badge">Car ${driver.carNumber}</span>
-                <input class="edit-driver-input" type="text" maxlength="${MAX_DRIVER_NAME_LENGTH}" value="${driver.name}">
+                <input class="edit-driver-input" type="text" maxlength="${MAX_DRIVER_NAME_LENGTH}">
                 <button class="save-driver-btn" type="button">Save</button>
                 <button class="cancel-driver-btn" type="button">Cancel</button>
                 `;
 
                 const editInput = row.querySelector(".edit-driver-input");
+                editInput.value = driver.name;
+
                 const saveBtn = row.querySelector(".save-driver-btn");
                 const cancelBtn = row.querySelector(".cancel-driver-btn");
 
