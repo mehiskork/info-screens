@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const timerDisplay = document.getElementById('timer-display'); // Taimeri kuvamine
     const fullscreenBtn = document.getElementById('fullscreen-btn'); // fullscreen nupp
     const lapsHeader = document.querySelector('.leaderboard-table thead tr th:last-child'); // RT71: viide viimase veeru pealkirjale
+    const sessionTitle = document.getElementById('session-title'); // RT88: viide pealkirjale
     const timerModel = window.createRaceTimerModel({
         showHundredths: false,
         onTick: ({ text }) => {
@@ -51,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('leaderboard:updated', (data) => {
         sessionEnded = false; // MUUDATUS: uus ralli algab, lähtesta sessionEnded
         if (lapsHeader) lapsHeader.innerText = 'Current Lap'; // RT71: live ralli — veeru nimi "Current Lap"
+        if (sessionTitle) sessionTitle.innerText = 'Live Standings'; // RT88: live ralli pealkiri
         if (data.leaderboard && data.leaderboard.length > 0) {
             renderLeaderboard(data.leaderboard, false); // false = RT71: live režiim
             emptyState.hidden = true;
@@ -64,34 +66,30 @@ document.addEventListener('DOMContentLoaded', () => {
     // ralli staatus ja taimer 
     socket.on('race:status', (race) => {
         timerModel.applyState(race);
-        if (sessionEnded) return; // MUUDATUS: kui sessioon lõppes, ära uuenda
-        if (race && race.active && race.mode !== 'finish') {
-            const mode = race.mode || 'waiting'; // Lipu tekst (SAFE, RACING, PAUSED)
-            flagStatus.innerText = mode.toUpperCase();
-            flagStatus.className = 'meta-box ' + mode; // muudab kasti värvid
-        } else if (race && race.mode === 'finish') {  //  finish režiimil taimer nulli
-            timerDisplay.innerText = "00:00";
-            flagStatus.innerText = "FINISH";
-            flagStatus.className = 'meta-box finish';
-        } else {
-            // kui ralli ei toimu hetkel
-            timerDisplay.innerText = "00:00";
-            flagStatus.innerText = "DANGER";
-            flagStatus.className = 'meta-box danger';
-            // näitab viimast lõppenud ralli edetabelit
-            // PARANDUS: lastFinishedRace on raw object, leaderboardi ehitamine
-            // varem oli race.lastFinishedRace.leaderboard (mis oli alati undefined)
+        if (!sessionEnded) {
+            if (race && race.active && race.mode !== 'finish') {
+                const mode = race.mode || 'waiting'; // Lipu tekst (SAFE, RACING, PAUSED)
+                flagStatus.innerText = mode.toUpperCase();
+                flagStatus.className = 'meta-box ' + mode; // muudab kasti värvid
+            } else if (race && race.mode === 'finish') {  //  finish režiimil taimer nulli
+                timerDisplay.innerText = "00:00";
+                flagStatus.innerText = "FINISH";
+                flagStatus.className = 'meta-box finish';
+            }
+        }
+        if (!race || !race.active) {
             if (race && race.lastFinishedRace && race.lastFinishedRace.drivers) {
                 const leaderboard = buildLeaderboardFromRaw(race.lastFinishedRace);
                 if (leaderboard.length > 0) {
-                    renderLeaderboard(leaderboard, true); // RT80
+                    if (sessionTitle) sessionTitle.innerText = 'Final Standings'; // RT88: lõppenud ralli pealkiri
+                    renderLeaderboard(leaderboard, true);
                     emptyState.hidden = true;
                     leaderboardCard.hidden = false;
                 } else {
                     emptyState.hidden = false;
                     leaderboardCard.hidden = true;
                 }
-            } else {
+            } else if (!sessionEnded) {
                 emptyState.hidden = false;
                 leaderboardCard.hidden = true;
             }
@@ -121,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
             flagStatus.className = 'meta-box ' + mode;
         }
         if (data.leaderboard) {
+            if (sessionTitle) sessionTitle.innerText = 'Live Standings'; // RT88: live pealkiri
             renderLeaderboard(data.leaderboard.leaderboard, false); // RT80
             emptyState.hidden = true;
             leaderboardCard.hidden = false;
@@ -130,6 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!data.raceStatus && !data.leaderboard && data.lastFinishedRace && data.lastFinishedRace.drivers) {
             const leaderboard = buildLeaderboardFromRaw(data.lastFinishedRace);
             if (leaderboard.length > 0) {
+                if (sessionTitle) sessionTitle.innerText = 'Final Standings'; // RT88: lõppenud ralli pealkiri
                 renderLeaderboard(leaderboard, true); // RT71: true = sessiooni lõpp režiim
                 emptyState.hidden = true;
                 leaderboardCard.hidden = false;
@@ -146,14 +146,13 @@ document.addEventListener('DOMContentLoaded', () => {
     socket.on('race:sessionEnded', () => {
         sessionEnded = true; // MUUDATUS: märgib sessiooni lõppenuks
         if (lapsHeader) lapsHeader.innerText = 'Laps'; // RT71: sessiooni lõpp — veeru nimi "Laps"
+        if (sessionTitle) sessionTitle.innerText = 'Final Standings'; // RT88: lõppenud ralli pealkiri
         timerDisplay.innerText = "00:00";
         flagStatus.innerText = "DANGER"; // punane danger lipp peale sessiooni lõppu ✅
         flagStatus.className = 'meta-box danger'; // punane taust ✅
         // RT80 - Backend data kasutamine
-        if (race && race.lastFinishedRace) {
-            const leaderboard = buildLeaderboardFromRaw(race.lastFinishedRace);
-            renderLeaderboard(leaderboard, true); // 
-        }
+        // RT88: eemaldatud broken if (race && race.lastFinishedRace) plokk
+        // RT88: lõppenud ralli andmed tulevad race:status / race:statusSnapshot kaudu
     });
 
     // finish režiim, taimer läheb kohe nulli
