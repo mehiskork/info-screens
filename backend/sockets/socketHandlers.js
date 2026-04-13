@@ -440,7 +440,18 @@ function initializeSocketHandlers(io) {
     })
 
     // START LIGHTS EVENTS
-    socket.on("startLights:begin", () => {
+    let lightsRunning = false
+
+    socket.on("startLights:begin", (callback) => {
+
+      if (!isAuthorized(socket, ROLE.SAFETY)) {
+        return rejectUnauthorized(callback, ROLE.SAFETY)
+      }
+
+      if (lightsRunning) return
+
+      lightsRunning = true
+
       let step = 0
 
       io.emit("startLights:begin")
@@ -451,11 +462,17 @@ function initializeSocketHandlers(io) {
           io.emit("startLights:step", step)
         } else {
           clearInterval(interval)
+          lightsRunning = false
         }
       }, 1000)
     })
 
-    socket.on("startLights:go", () => {
+    socket.on("startLights:go", (callback) => {
+
+      if (!isAuthorized(socket, ROLE.SAFETY)) {
+        return rejectUnauthorized(callback, ROLE.SAFETY)
+      }
+
       io.emit("startLights:go")
     })
 
