@@ -284,14 +284,32 @@ function renderSessions(sessions) {
         session.drivers.forEach((driver) => {
             const row = document.createElement("div");
             row.className = "driver-row";
-            row.innerHTML = `
-            <span class="driver-badge">Car ${driver.carNumber}</span>
-            <span class="driver-name">${driver.name}</span>
-            <button class = "edit-driver-btn" type="button">Edit</button>
-            <button class = "rmv-driver-btn" type="button">Remove</button>
-            `;
 
-            const rmvDriverBtn = row.querySelector(".rmv-driver-btn")
+            const badge = document.createElement("span");
+            badge.className = "driver-badge";
+            badge.textContent = `Car ${driver.carNumber}`;
+
+            const name = document.createElement("span");
+            name.className = "driver-name";
+            name.textContent = driver.name;
+
+            const editDriverBtn = document.createElement("button");
+            editDriverBtn.className = "edit-driver-btn";
+            editDriverBtn.type = "button";
+            editDriverBtn.textContent = "Edit";
+
+            const rmvDriverBtn = document.createElement("button");
+            rmvDriverBtn.className = "rmv-driver-btn";
+            rmvDriverBtn.type = "button";
+            rmvDriverBtn.textContent = "Remove";
+
+            row.appendChild(badge);
+            row.appendChild(name);
+            row.appendChild(editDriverBtn);
+            row.appendChild(rmvDriverBtn);
+
+
+
 
             rmvDriverBtn.addEventListener("click", () => {
                 console.log("sending driver: remove", session.id, driver.name);
@@ -310,22 +328,34 @@ function renderSessions(sessions) {
                 });
             });
 
-            const editDriverBtn = row.querySelector(".edit-driver-btn")
+
 
             editDriverBtn.addEventListener("click", () => {
 
-                row.innerHTML = `
-                <span class="driver-badge">Car ${driver.carNumber}</span>
-                <input class="edit-driver-input" type="text" maxlength="${MAX_DRIVER_NAME_LENGTH}">
-                <button class="save-driver-btn" type="button">Save</button>
-                <button class="cancel-driver-btn" type="button">Cancel</button>
-                `;
+                row.replaceChildren();
 
-                const editInput = row.querySelector(".edit-driver-input");
+                const badge = document.createElement("span");
+                badge.className = "driver-badge";
+                badge.textContent = `Car ${driver.carNumber}`;
+
+                const editInput = document.createElement("input");
+                editInput.className = "edit-driver-input";
+                editInput.type = "text";
+                editInput.maxLength = MAX_DRIVER_NAME_LENGTH;
                 editInput.value = driver.name;
 
-                const saveBtn = row.querySelector(".save-driver-btn");
-                const cancelBtn = row.querySelector(".cancel-driver-btn");
+                const saveBtn = document.createElement("button");
+                saveBtn.className = "save-driver-btn";
+                saveBtn.type = "button";
+                saveBtn.textContent = "Save";
+
+                const cancelBtn = document.createElement("button");
+                cancelBtn.className = "cancel-driver-btn";
+                cancelBtn.type = "button";
+                cancelBtn.textContent = "Cancel";
+
+                row.append(badge, editInput, saveBtn, cancelBtn);
+
 
                 cancelBtn.addEventListener("click", loadSessions);
 

@@ -207,17 +207,16 @@ function renderLeaderboard(data, sessionEnded = false) {
     const tbody = document.getElementById('leaderboard-data');
     const lapsHeader = document.querySelector('.leaderboard-table thead tr th:last-child');
     if (!tbody) return;
-    // RT71: veeru pealkiri sõltub sessiooni olekust
+
     if (lapsHeader) {
         lapsHeader.innerText = sessionEnded ? 'Laps' : 'Current Lap';
     }
 
-
     tbody.innerHTML = '';
+
     data.forEach((driver, index) => {
         const row = document.createElement('tr');
 
-        // minutid ja sekundid korrektse formaadiga
         const bestTimeStr = driver.bestTime
             ? (() => {
                 const ms = driver.bestTime;
@@ -230,19 +229,26 @@ function renderLeaderboard(data, sessionEnded = false) {
             })()
             : '00:00';
 
-        // RT71: sessiooni lõpus kuva lõpetatud ringid (currentLap - 1), live režiimis currentLap
         const lapsValue = sessionEnded
             ? Math.max(0, (driver.currentLap || 0) - 1)
             : (driver.currentLap || 0);
 
-        // ridade lisamine tabelisse
-        row.innerHTML = `
-            <td>${index + 1}</td>
-            <td>${driver.carNumber}</td>
-            <td>${driver.name}</td>
-            <td>${bestTimeStr}</td>
-            <td>${lapsValue}</td>
-            `;
+        const rankCell = document.createElement('td');
+        rankCell.textContent = String(index + 1);
+
+        const carCell = document.createElement('td');
+        carCell.textContent = String(driver.carNumber);
+
+        const nameCell = document.createElement('td');
+        nameCell.textContent = driver.name;
+
+        const bestTimeCell = document.createElement('td');
+        bestTimeCell.textContent = bestTimeStr;
+
+        const lapsCell = document.createElement('td');
+        lapsCell.textContent = String(lapsValue);
+
+        row.append(rankCell, carCell, nameCell, bestTimeCell, lapsCell);
         tbody.appendChild(row);
     });
 }
