@@ -189,12 +189,18 @@ function renderDriverRow(driver) {
     const row = document.createElement("div");
     row.className = "driver-row";
 
-    row.innerHTML = `
-        <span class="driver-badge">Car ${driver.carNumber}</span>
-        <span class="driver-name">${driver.name}</span>
-    `;
+    const badge = document.createElement("span");
+    badge.className = "driver-badge";
+    badge.textContent = `Car ${driver.carNumber}`;
 
-    return row
+    const name = document.createElement("span");
+    name.className = "driver-name";
+    name.textContent = driver.name;
+
+    row.appendChild(badge);
+    row.appendChild(name);
+
+    return row;
 }
 
 
