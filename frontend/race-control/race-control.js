@@ -74,6 +74,8 @@ form.addEventListener("submit", (e) => {
         }
     })
 
+    let listenersAttached = false
+
     socket.on("connect", () => {
         isAuthed = true
 
@@ -82,7 +84,10 @@ form.addEventListener("submit", (e) => {
 
         showRacePanel()
 
-        setupSocketEvents()
+        if (!listenersAttached) {
+            setupSocketEvents()
+            listenersAttached = true
+        }
 
         socket.emit("race:getStatus")
     })
@@ -193,6 +198,7 @@ form.addEventListener("submit", (e) => {
 
 
         socket.on("race:status", (state) => {
+            // console.log("race:status fired", Date.now())
             const s = state?.raceStatus || state
             if (!s) return
 
