@@ -1,3 +1,5 @@
+let listenersAttached = false
+let timerLoopId = null
 let socket = null
 let raceFinished = false
 let endTime = null
@@ -29,8 +31,6 @@ const finishBtn = document.getElementById("finish")
 const endSessionBtn = document.getElementById("end-session")
 const miniTimer = document.getElementById("mini-timer")
 const lights = document.querySelectorAll(".mini-light")
-
-//document.querySelectorAll(".mini-light")
 
 // Info areas
 const nextRaceEl = document.getElementById("next-race")
@@ -74,7 +74,7 @@ form.addEventListener("submit", (e) => {
         }
     })
 
-    let listenersAttached = false
+
 
     socket.on("connect", () => {
         isAuthed = true
@@ -93,6 +93,7 @@ form.addEventListener("submit", (e) => {
 
     socket.on("disconnect", () => {
         hasInitialState = false
+        stopTimerLoop()
 
         showLockScreen("Server disconnected")
 
@@ -400,14 +401,22 @@ form.addEventListener("submit", (e) => {
     }
 
     function startTimerLoop() {
+        if (timerLoopId !== null) return
+
         function loop() {
             updateTimer()
-            requestAnimationFrame(loop)
+            timerLoopId = requestAnimationFrame(loop)
         }
-        requestAnimationFrame(loop)
+
+        timerLoopId = requestAnimationFrame(loop)
     }
 
-    startTimerLoop()
+    function stopTimerLoop() {
+        if (timerLoopId !== null) {
+            cancelAnimationFrame(timerLoopId)
+            timerLoopId = null
+        }
+    }
 
     // UI
     function updateUIState(hasActiveRace, mode) {
@@ -555,5 +564,7 @@ form.addEventListener("submit", (e) => {
             el.classList.remove("hidden")
         }, 400)
     }
+
+    startTimerLoop()
 
 })
