@@ -89,7 +89,6 @@ form.addEventListener("submit", (e) => {
             listenersAttached = true
         }
 
-        socket.emit("race:getStatus")
     })
 
     socket.on("disconnect", () => {
