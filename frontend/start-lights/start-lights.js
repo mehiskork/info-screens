@@ -73,8 +73,6 @@ document.addEventListener("fullscreenchange", () => {
         fsBtn.style.opacity = "0.6"
         fsBtn.style.pointerEvents = "auto"
     }
-
-    setTimeout(() => renderMode(currentMode), 100)
 })
 
 const lightsContainer = document.getElementById("lights")
