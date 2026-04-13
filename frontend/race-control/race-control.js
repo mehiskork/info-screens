@@ -1,4 +1,3 @@
-let listenersAttached = false
 let timerLoopId = null
 let socket = null
 let raceFinished = false
@@ -56,9 +55,15 @@ form.addEventListener("submit", (e) => {
     socket = io({
         auth: {
             role: "safety",
-            accessKey: accessKey
+            accessKey
         }
     })
+
+    setupSocketEvents(socket)
+
+    if (timerLoopId === null) {
+        startTimerLoop()
+    }
 
     socket.on("connect_error", (err) => {
 
@@ -83,11 +88,6 @@ form.addEventListener("submit", (e) => {
         clearError()
 
         showRacePanel()
-
-        if (!listenersAttached) {
-            setupSocketEvents()
-            listenersAttached = true
-        }
 
     })
 
@@ -170,9 +170,9 @@ form.addEventListener("submit", (e) => {
 
 
     // SOCKET EVENTS
-    function setupSocketEvents() {
+    function setupSocketEvents(activeSocket) {
 
-        socket.on("race:statusSnapshot", (state) => {
+        activeSocket.on("race:statusSnapshot", (state) => {
             hasInitialState = true
 
             showRacePanel()
@@ -197,7 +197,7 @@ form.addEventListener("submit", (e) => {
         })
 
 
-        socket.on("race:status", (state) => {
+        activeSocket.on("race:status", (state) => {
             // console.log("race:status fired", Date.now())
             const s = state?.raceStatus || state
             if (!s) return
@@ -214,12 +214,12 @@ form.addEventListener("submit", (e) => {
         })
 
 
-        socket.on("race:modeChanged", (state) => {
+        activeSocket.on("race:modeChanged", (state) => {
             handleState(state?.raceStatus || state)
         })
 
 
-        socket.on("startLights:begin", () => {
+        activeSocket.on("startLights:begin", () => {
             showLights()
             resetLights()
 
@@ -227,7 +227,7 @@ form.addEventListener("submit", (e) => {
             startBtn.disabled = true
         })
 
-        socket.on("startLights:step", (step) => {
+        activeSocket.on("startLights:step", (step) => {
             lights[step - 1].classList.add("on")
 
             if (step === 5) {
@@ -237,7 +237,7 @@ form.addEventListener("submit", (e) => {
         })
 
 
-        socket.on("startLights:go", () => {
+        activeSocket.on("startLights:go", () => {
             goLights()
 
             setTimeout(() => {
@@ -245,18 +245,18 @@ form.addEventListener("submit", (e) => {
             }, 2500)
         })
 
-        socket.on("race:finished", () => {
+        activeSocket.on("race:finished", () => {
             raceFinished = true
         })
 
-        socket.on("race:sessionEnded", () => {
+        activeSocket.on("race:sessionEnded", () => {
             raceFinished = false
             lastActive = false
             setIdle()
             updateUIState(false, "")
         })
 
-        socket.on("nextRace:changed", () => {
+        activeSocket.on("nextRace:changed", () => {
             socket.emit("getNextRace", (res) => {
                 if (!res?.success || !res.data) {
                     cachedNextRace = null
@@ -496,16 +496,22 @@ form.addEventListener("submit", (e) => {
         titleEl.innerText = "Next: " + (race.name || "Session " + race.id)
 
         entries.forEach(e => {
-            const row = document.createElement("div")
-            row.className = "driver-row"
+            const row = document.createElement("div");
+            row.className = "driver-row";
 
-            row.innerHTML = `
-        <div class="driver-badge">Car ${e.carNumber || "-"}</div>
-        <div class="driver-name">${e.driverName || e.name || "Driver"}</div>
-    `
+            const badge = document.createElement("div");
+            badge.className = "driver-badge";
+            badge.textContent = `Car ${e.carNumber || "-"}`;
 
-            listEl.appendChild(row)
-        })
+            const name = document.createElement("div");
+            name.className = "driver-name";
+            name.textContent = e.driverName || e.name || "Driver";
+
+            row.appendChild(badge);
+            row.appendChild(name);
+            listEl.appendChild(row);
+        });
+
     }
 
     function toggleNextRace(show) {
@@ -565,6 +571,23 @@ form.addEventListener("submit", (e) => {
         }, 400)
     }
 
-    startTimerLoop()
+    /*let rAFCount = 0
+
+    function startTimerLoop() {
+        if (timerLoopId !== null) return
+
+        function loop() {
+            rAFCount++
+
+            if (rAFCount % 60 === 0) {
+                console.log("rAF loops running:", rAFCount)
+            }
+
+            updateTimer()
+            timerLoopId = requestAnimationFrame(loop)
+        }
+
+        timerLoopId = requestAnimationFrame(loop)
+    }*/
 
 })
