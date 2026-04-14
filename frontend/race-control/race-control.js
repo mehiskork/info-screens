@@ -13,6 +13,7 @@ let uiInitialized = false
 let hasInitialState = false
 let isAuthed = false
 let listenersAttached = false
+let currentLightsState = null
 
 // Lock screen
 const lockScreen = document.getElementById("lock-screen")
@@ -127,34 +128,26 @@ form.addEventListener("submit", (e) => {
     let lightsReady = false
 
     startBtn.onclick = () => {
-
-        if (!lightsReady) {
+        if (!currentLightsState || currentLightsState.active === false) {
             socket.emit("startLights:begin")
-
-
             startBtn.disabled = true
             return
         }
 
-        // SECOND CLICK (only when ready)
+        if (currentLightsState.phase === "ready") {
+            socket.emit("startLights:go")
 
-        socket.emit("startLights:go")
+            socket.emit("getNextRace", (res) => {
+                if (!res?.success) {
+                    showError("No upcoming race")
+                    return
+                }
 
-
-        socket.emit("getNextRace", (res) => {
-            if (!res?.success) {
-                showError("No upcoming race")
-                return
-            }
-
-            const race = res.data
-
-            emitSafe("race:start", { sessionId: race.id }, (res) => {
-                if (!res.success) showError(res.error)
+                emitSafe("race:start", { sessionId: res.data.id }, (res) => {
+                    if (!res.success) showError(res.error)
+                })
             })
-        })
-
-        lightsReady = false
+        }
     }
 
     safeBtn.onclick = () => setMode("safe")
@@ -192,6 +185,7 @@ form.addEventListener("submit", (e) => {
             showRacePanel()
 
             if (state.lights) {
+                currentLightsState = state.lights
                 restoreLights(state.lights)
             }
 
@@ -238,24 +232,39 @@ form.addEventListener("submit", (e) => {
 
 
         activeSocket.on("startLights:begin", () => {
+            currentLightsState = {
+                active: true,
+                step: 0,
+                phase: "counting"
+            }
+
             showLights()
             resetLights()
-
-            lightsReady = false
             startBtn.disabled = true
         })
 
         activeSocket.on("startLights:step", (step) => {
+            if (!currentLightsState) return
+
+            currentLightsState.active = true
+            currentLightsState.step = step
+            currentLightsState.phase = "counting"
+
             lights[step - 1].classList.add("on")
 
             if (step === 5) {
-                lightsReady = true
+                currentLightsState.phase = "ready"
                 startBtn.disabled = false
             }
         })
 
 
         activeSocket.on("startLights:go", () => {
+            if (!currentLightsState) return
+
+            currentLightsState.phase = "go"
+            currentLightsState.active = false   // 🔥 IMPORTANT
+
             goLights()
 
             setTimeout(() => {
@@ -315,6 +324,11 @@ form.addEventListener("submit", (e) => {
         // restore steps
         for (let i = 0; i < lightsState.step; i++) {
             lights[i].classList.add("on")
+        }
+
+        if (lightsState.step === 5 && lightsState.phase !== "go") {
+            lightsReady = true
+            startBtn.disabled = false
         }
 
         if (lightsState.phase === "go") {
