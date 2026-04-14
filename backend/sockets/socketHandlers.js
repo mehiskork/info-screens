@@ -455,14 +455,16 @@ function initializeSocketHandlers(io) {
 
 
     socket.on("startLights:begin", (callback) => {
-
       if (!isAuthorized(socket, ROLE.SAFETY)) {
         return rejectUnauthorized(callback, ROLE.SAFETY)
       }
 
+      if (lightsState.active) return
+
       if (lightsInterval) {
         clearInterval(lightsInterval)
         lightsInterval = null
+        lightsState.phase = "ready"
       }
 
       lightsState = {
@@ -480,6 +482,7 @@ function initializeSocketHandlers(io) {
         } else {
           clearInterval(lightsInterval)
           lightsInterval = null
+          lightsState.phase = "ready"
         }
       }, 1000)
     })
@@ -495,6 +498,7 @@ function initializeSocketHandlers(io) {
       if (lightsInterval) {
         clearInterval(lightsInterval)
         lightsInterval = null
+        lightsState.phase = "ready"
       }
 
       lightsState.phase = "go"
@@ -725,11 +729,6 @@ function initializeSocketHandlers(io) {
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id)
 
-      if (lightsInterval) {
-        clearInterval(lightsInterval)
-        lightsInterval = null
-        lightsRunning = false
-      }
     })
   })
 }
