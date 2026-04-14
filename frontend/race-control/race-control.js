@@ -12,6 +12,7 @@ let lastFullRace = null
 let uiInitialized = false
 let hasInitialState = false
 let isAuthed = false
+let listenersAttached = false
 
 // Lock screen
 const lockScreen = document.getElementById("lock-screen")
@@ -50,7 +51,10 @@ form.addEventListener("submit", (e) => {
         return
     }
 
-    if (socket) socket.disconnect()
+    if (socket) {
+        socket.removeAllListeners()
+        socket.disconnect()
+    }
 
     socket = io({
         auth: {
@@ -61,9 +65,8 @@ form.addEventListener("submit", (e) => {
 
     setupSocketEvents(socket)
 
-    if (timerLoopId === null) {
-        startTimerLoop()
-    }
+    stopTimerLoop()
+    startTimerLoop()
 
     socket.on("connect_error", (err) => {
 
@@ -88,6 +91,13 @@ form.addEventListener("submit", (e) => {
         clearError()
 
         showRacePanel()
+
+        resetLights()
+        hideLights()
+
+        lightsReady = false
+        startBtn.disabled = false
+        startTimerLoop()
 
     })
 
@@ -120,12 +130,16 @@ form.addEventListener("submit", (e) => {
 
         if (!lightsReady) {
             socket.emit("startLights:begin")
+
+
             startBtn.disabled = true
             return
         }
 
         // SECOND CLICK (only when ready)
+
         socket.emit("startLights:go")
+
 
         socket.emit("getNextRace", (res) => {
             if (!res?.success) {
@@ -176,6 +190,10 @@ form.addEventListener("submit", (e) => {
             hasInitialState = true
 
             showRacePanel()
+
+            if (state.lights) {
+                restoreLights(state.lights)
+            }
 
             const s = state?.raceStatus
 
@@ -257,7 +275,7 @@ form.addEventListener("submit", (e) => {
         })
 
         activeSocket.on("nextRace:changed", () => {
-            socket.emit("getNextRace", (res) => {
+            activeSocket.emit("getNextRace", (res) => {
                 if (!res?.success || !res.data) {
                     cachedNextRace = null
                     renderNextRace(null)
@@ -277,6 +295,35 @@ form.addEventListener("submit", (e) => {
                 }
             })
         })
+
+        activeSocket.on("state:update", (state) => {
+            if (state.lights) {
+                restoreLights(state.lights)
+            }
+        })
+    }
+
+    function restoreLights(lightsState) {
+        resetLights()
+        showLights()
+
+        if (!lightsState.active) {
+            hideLights()
+            return
+        }
+
+        // restore steps
+        for (let i = 0; i < lightsState.step; i++) {
+            lights[i].classList.add("on")
+        }
+
+        if (lightsState.phase === "go") {
+            goLights()
+
+            setTimeout(() => {
+                hideLights()
+            }, 2500)
+        }
     }
 
     // STATE
