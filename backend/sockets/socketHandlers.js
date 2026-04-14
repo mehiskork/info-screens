@@ -239,8 +239,7 @@ function broadcastState(io) {
     const payload = {
       raceMode: "DANGER",
       timer: { running: false },
-      hasActiveRace: false,
-      lights: lightsState
+      hasActiveRace: false
     }
 
     io.emit("state:update", payload)
@@ -270,8 +269,7 @@ function broadcastState(io) {
         endsAt: updatedStatus.race.startTime + updatedStatus.race.totalDuration * 1000
       },
       hasActiveRace: true,
-      sessionId: updatedStatus.race.sessionId,
-      lights: lightsState
+      sessionId: updatedStatus.race.sessionId
     }
 
     io.emit("state:update", payload)
