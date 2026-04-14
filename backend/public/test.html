@@ -1,9 +1,0 @@
-<script src="/socket.io/socket.io.js"></script>
-<script>
-  const socket = io()
-
-  socket.on('hello', (data) => {
-    console.log('Received hello event with data:', data)
-    document.body.innerText = data.message
-  })
-</script>
