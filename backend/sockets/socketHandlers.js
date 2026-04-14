@@ -32,6 +32,15 @@ const RACE_TICK_MS = 1000
 let raceTickHandle = null
 let lastBroadcastStateSignature = null
 
+let lightsState = {
+  active: false,
+  step: 0,
+  phase: "idle"
+}
+let lightsInterval = null
+
+
+
 const ROLE = {
   PUBLIC: 'public',
   RECEPTIONIST: 'receptionist',
@@ -185,9 +194,12 @@ function emitRaceStatus(io, options = {}) {
   }
 }
 
+
 function emitRaceSnapshot(socket) {
   socket.emit('race:statusSnapshot', {
-    ...getLifecyclePayload()
+    ...getLifecyclePayload(),
+
+    lights: lightsState
   })
 
   const allTimeResult = getAllTimeLeaderboardTopTen()
@@ -227,7 +239,8 @@ function broadcastState(io) {
     const payload = {
       raceMode: "DANGER",
       timer: { running: false },
-      hasActiveRace: false
+      hasActiveRace: false,
+      lights: lightsState
     }
 
     io.emit("state:update", payload)
@@ -257,7 +270,8 @@ function broadcastState(io) {
         endsAt: updatedStatus.race.startTime + updatedStatus.race.totalDuration * 1000
       },
       hasActiveRace: true,
-      sessionId: updatedStatus.race.sessionId
+      sessionId: updatedStatus.race.sessionId,
+      lights: lightsState
     }
 
     io.emit("state:update", payload)
@@ -440,7 +454,7 @@ function initializeSocketHandlers(io) {
     })
 
     // START LIGHTS EVENTS
-    let lightsRunning = false
+
 
     socket.on("startLights:begin", (callback) => {
 
@@ -448,21 +462,26 @@ function initializeSocketHandlers(io) {
         return rejectUnauthorized(callback, ROLE.SAFETY)
       }
 
-      if (lightsRunning) return
+      if (lightsInterval) {
+        clearInterval(lightsInterval)
+        lightsInterval = null
+      }
 
-      lightsRunning = true
-
-      let step = 0
+      lightsState = {
+        active: true,
+        step: 0,
+        phase: "counting"
+      }
 
       io.emit("startLights:begin")
 
-      const interval = setInterval(() => {
-        if (step < 5) {
-          step++
-          io.emit("startLights:step", step)
+      lightsInterval = setInterval(() => {
+        if (lightsState.step < 5) {
+          lightsState.step++
+          io.emit("startLights:step", lightsState.step)
         } else {
-          clearInterval(interval)
-          lightsRunning = false
+          clearInterval(lightsInterval)
+          lightsInterval = null
         }
       }, 1000)
     })
@@ -473,9 +492,22 @@ function initializeSocketHandlers(io) {
         return rejectUnauthorized(callback, ROLE.SAFETY)
       }
 
-      io.emit("startLights:go")
-    })
+      if (!lightsState.active) return
 
+      if (lightsInterval) {
+        clearInterval(lightsInterval)
+        lightsInterval = null
+      }
+
+      lightsState.phase = "go"
+
+      io.emit("startLights:go")
+
+      // reset after short delay
+      setTimeout(() => {
+        lightsState = { active: false, step: 0, phase: "idle" }
+      }, 3000)
+    })
     // Start a race
     socket.on('race:start', (data, callbackParam) => {
       const callback = typeof callbackParam === 'function'
@@ -694,6 +726,12 @@ function initializeSocketHandlers(io) {
 
     socket.on('disconnect', () => {
       console.log('Client disconnected:', socket.id)
+
+      if (lightsInterval) {
+        clearInterval(lightsInterval)
+        lightsInterval = null
+        lightsRunning = false
+      }
     })
   })
 }
