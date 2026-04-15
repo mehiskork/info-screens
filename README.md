@@ -437,10 +437,11 @@ Used to start races, control race mode, and end the session.
 
 1. Unlock Race Control.
 2. Review the next session and driver/car assignments.
-3. Press **Start Race**.
-4. Use mode controls during the race.
-5. Change to **Finish** when the race is over.
-6. End the session once the cars have returned.
+3. Press **Start Race** to the start-lights sequence.
+4. After the lights go out, press **Start Race** again to begin the race timer.
+5. Use mode controls during the race.
+6. Change to **Finish** when the race is over.
+7. End the session once the cars have returned.
 
 ### Important behavior
 
@@ -604,7 +605,7 @@ Shows a visual race start-light sequence as an additional public display.
 
 ### Notes
 
-This is bonus functionality and is not required for the core MVP flow. It does not replace the required race control, flag, countdown, next-race, or leaderboard screens.
+This is bonus functionality and is not required for the core MVP flow. It does not replace the required race control, flag, countdown, next-race, or leaderboard screens. The light sequence does not start the race automatically. The Safety Official must still press **Start Race** in Race Control.
 
 ---
 
