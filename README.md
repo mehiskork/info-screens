@@ -28,6 +28,7 @@ It supports:
 - [Available Routes](#available-routes)
 - [How the System Works](#how-the-system-works)
 - [User Guide](#user-guide)
+  - [Dashboard](#dashboard)
   - [Front Desk](#front-desk)
   - [Race Control](#race-control)
   - [Lap-line Tracker](#lap-line-tracker)
@@ -99,6 +100,7 @@ The system is designed around the race lifecycle:
 
 - Persisted application state across server restarts
 - Receptionist-selected car assignment instead of random allocation
+- Dashboard
 
 
 ---
@@ -121,7 +123,6 @@ The system is designed around the race lifecycle:
 ├── backend/
 │   ├── config/
 │   ├── persistence/
-│   ├── public/
 │   ├── services/
 │   ├── sockets/
 │   ├── state/
@@ -130,6 +131,7 @@ The system is designed around the race lifecycle:
 │   ├── package.json
 │   └── server.js
 ├── frontend/
+│   ├── dashboard/
 │   ├── front-desk/
 │   ├── lap-line-tracker/
 │   ├── leaderboard/
@@ -247,28 +249,41 @@ Behavior:
 After starting the server, open the app in your browser:
 
 ```text
-http://localhost:3000/front-desk
+http://localhost:3000/
 ```
 
 ## Available Routes
+
+### Main entry
+
+| Screen | Purpose | Route |
+|---|---|---|
+| Dashboard | Opens all main interfaces from one screen | `/` |
+
+### Employee interfaces
 
 | Interface | Persona | Route |
 |---|---|---|
 | Front Desk | Receptionist | `/front-desk` |
 | Race Control | Safety Official | `/race-control` |
 | Lap-line Tracker | Lap-line Observer | `/lap-line-tracker` |
+
+### Public displays
+
+| Interface | Persona | Route |
+|---|---|---|
 | Leader Board | Guest / Spectator | `/leader-board` |
 | Next Race | Race Driver | `/next-race` |
-| Race Countdown | Race Driver | `/race-countdown` |
-| Race Flags | Race Driver | `/race-flags` |
-| Start Lights | Race Driver / Public display | `/start-lights` |
+| Race Countdown | Race Driver / Public display | `/race-countdown` |
+| Race Flags | Race Driver / Public display | `/race-flags` |
 
-### Additional backend routes
+### Bonus screens / endpoints
 
 | Route | Purpose |
 |---|---|
-| `/api/leaderboard/all-time` | Returns persisted all-time top 10 lap data as JSON |
-| `/all-time-best-laps` | Placeholder route for a future all-time leaderboard screen |
+| `/start-lights` | Bonus start-light display |
+| `/api/leaderboard/all-time` | Returns all-time top 10 lap data as JSON |
+| `/all-time-best-laps` | Placeholder route for future frontend view |
 
 ---
 
@@ -331,6 +346,29 @@ That action:
 ### Frozen post-race leaderboard
 
 After a race ends, the last finished race remains visible on the leaderboard until the next race starts. This lets drivers and spectators continue viewing lap results between sessions.
+
+---
+
+## Dashboard
+
+**Route:** `/`
+
+### Purpose
+
+The dashboard is the main entry screen for opening all interfaces from one place.
+
+### What it shows
+
+- quick links to all employee interfaces
+- quick links to all public displays
+- current race status
+- fullscreen support
+
+### Typical use
+
+1. Open `/`
+2. Launch the needed interfaces in separate tabs or windows
+3. Use it as a control hub during demos and review
 
 ---
 
@@ -607,6 +645,10 @@ On server restart:
 
 ## Extra Functionality
 
+### Dashboard
+
+Main entry screen for opening all interfaces from one place.
+
 ### Persisted state
 
 The project persists its application state so that the server can restart without losing the queue and key race data.
@@ -690,7 +732,7 @@ Example employee routes:
 - `https://racetrack.portu.ee/lap-line-tracker`
 
 
-Autentication:
+Authentication:
 
 - RECEPTIONIST_KEY=kesa1as
 - OBSERVER_KEY=mut1onu
