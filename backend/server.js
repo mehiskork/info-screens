@@ -14,9 +14,6 @@ const server = http.createServer(app)
 const io = new Server(server)
 
 
-// Serve static files
-app.use(express.static('public'))
-
 // Serve frontend files from parent directory
 app.use('/frontend', express.static('../frontend'))
 
