@@ -123,6 +123,7 @@ body:hover #fullscreen-btn {
 
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+    background-clip: text;
 
     animation: wave 6s linear infinite;
 }

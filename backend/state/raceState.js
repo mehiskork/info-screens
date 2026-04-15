@@ -83,11 +83,33 @@ function getSessionById(sessionId) {
   return state.sessions.find(session => session.id === sessionId) || null
 }
 
+function isActiveSession(sessionId) {
+  return state.currentRace.sessionId !== null
+    && Number(sessionId) === Number(state.currentRace.sessionId)
+}
+
+function rejectActiveSessionMutation(sessionId) {
+  if (isActiveSession(sessionId)) {
+    return {
+      success: false,
+      error: 'Cannot modify a session while it is racing'
+    }
+  }
+
+  return null
+}
+
+
 /**
  * Step 4: Add a driver to a session
  * Receptionist must specify the car number (1-8)
  */
 function addDriver(sessionId, driverName, carNumber) {
+
+  const activeSessionError = rejectActiveSessionMutation(sessionId)
+  if (activeSessionError) {
+    return activeSessionError
+  }
   // Validate driver name
   if (!driverName || typeof driverName !== 'string' || driverName.trim() === '') {
     return { success: false, error: 'Driver name is required' }
@@ -185,6 +207,11 @@ function getNextRaceSession() {
  * Step 6: Remove a session
  */
 function removeSession(sessionId) {
+
+  const activeSessionError = rejectActiveSessionMutation(sessionId)
+  if (activeSessionError) {
+    return activeSessionError
+  }
   const index = state.sessions.findIndex(s => s.id === sessionId)
   if (index === -1) {
     return { success: false, error: 'Session not found' }
@@ -199,6 +226,14 @@ function removeSession(sessionId) {
  * Step 7: Remove a driver from a session
  */
 function removeDriver(sessionId, driverName) {
+
+
+
+  const activeSessionError = rejectActiveSessionMutation(sessionId)
+  if (activeSessionError) {
+    return activeSessionError
+  }
+
   const session = getSessionById(sessionId)
   if (!session) {
     return { success: false, error: 'Session not found' }
@@ -220,6 +255,11 @@ function removeDriver(sessionId, driverName) {
  * Cannot change car number as it's auto-assigned
  */
 function updateDriver(sessionId, carNumber, newDriverName) {
+
+  const activeSessionError = rejectActiveSessionMutation(sessionId)
+  if (activeSessionError) {
+    return activeSessionError
+  }
   // Validate inputs
   if (!newDriverName || typeof newDriverName !== 'string' || newDriverName.trim() === '') {
     return { success: false, error: 'Driver name is required' }

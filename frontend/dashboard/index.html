@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Dashboard</title>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <style>
+        :root {
+            --background: oklch(0.145 0 0);
+            --foreground: oklch(0.985 0 0);
+            --card: oklch(0.145 0 0);
+            --border: oklch(0.269 0 0);
+            --muted: oklch(0.269 0 0);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: var(--background);
+            color: var(--foreground);
+            font-family: Arial, sans-serif;
+            overflow-x: hidden;
+        }
+
+        /* FULLSCREEN MODE */
+        .fullscreen-mode #fullscreen-btn {
+            cursor: none;
+            display: none;
+        }
+
+        #fullscreen-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999;
+            opacity: 0.6;
+        }
+
+        #fullscreen-btn:hover {
+            opacity: 1;
+        }
+
+        .button1 {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            color: var(--foreground);
+            cursor: pointer;
+            font-weight: 700;
+            padding: 0.8rem 1.2rem;
+            transition: 0.2s;
+        }
+
+        .button1:hover {
+            background: var(--muted);
+            border-color: var(--foreground);
+        }
+
+        .button1:active {
+            transform: scale(0.96);
+        }
+
+        /* ANIMATED TITLE */
+        #main-title {
+            text-align: center;
+            font-size: clamp(50px, 7vw, 120px);
+            margin-top: 30px;
+
+            background: linear-gradient(90deg,
+                    #00c6ff,
+                    #0072ff,
+                    #00c6ff,
+                    #fbd786,
+                    #f7797d);
+            background-size: 300% auto;
+
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+
+            animation: wave 6s linear infinite;
+        }
+
+        @keyframes wave {
+            0% {
+                background-position: 0% center;
+            }
+
+            100% {
+                background-position: 300% center;
+            }
+        }
+
+        /* SUB TITLE */
+        #dashboard-title {
+            text-align: center;
+            font-size: 36px;
+            font-weight: bold;
+            margin: 10px 0 20px;
+        }
+
+        /* STATUS BAR */
+        #status-bar {
+            margin: 0 auto 30px;
+            width: fit-content;
+            padding: 14px 30px;
+            border: 2px solid var(--border);
+            border-radius: 16px;
+            background: var(--card);
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .status-safe {
+            color: #32cd32;
+        }
+
+        .status-hazard {
+            color: yellow;
+        }
+
+        .status-danger,
+        .status-idle {
+            color: red;
+        }
+
+        .status-finish {
+            color: white;
+        }
+
+        /* GRID (2 rows 4+4) */
+        .grid {
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            padding: 20px;
+        }
+
+        /* BUTTON CARDS */
+        .card {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: 20px;
+            padding: 40px 10px;
+            text-align: center;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+            user-select: none;
+        }
+
+        .card:hover {
+            background: var(--muted);
+            border-color: var(--foreground);
+        }
+
+        .card:active {
+            transform: scale(0.96);
+        }
+
+        /* MOBILE */
+        @media (max-width: 900px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- FULLSCREEN BUTTON -->
+    <button id="fullscreen-btn" class="button1">Fullscreen</button>
+
+    <!-- ANIMATED TITLE -->
+    <div id="main-title">Beachside Racetrack</div>
+
+    <!-- DASHBOARD TITLE -->
+    <div id="dashboard-title">Dashboard</div>
+
+    <!-- STATUS -->
+    <div id="status-bar">
+        Status: <span id="race-status" class="status-idle">No Active Race</span>
+    </div>
+
+    <!-- GRID -->
+    <div class="grid">
+
+        <div class="card" onclick="go('/front-desk')">Front Desk</div>
+        <div class="card" onclick="go('/race-control')">Race Control</div>
+        <div class="card" onclick="go('/lap-line-tracker')">Lap-line Tracker</div>
+        <div class="card" onclick="go('/start-lights')">Start Lights</div>
+
+        <div class="card" onclick="go('/race-countdown')">Countdown</div>
+        <div class="card" onclick="go('/race-flags')">Race Flags</div>
+        <div class="card" onclick="go('/next-race')">Next Race</div>
+        <div class="card" onclick="go('/leader-board')">Leaderboard</div>
+
+    </div>
+
+    <script>
+        const socket = io()
+        const statusEl = document.getElementById("race-status")
+
+        function go(path) {
+            window.open(path, "_blank", "noopener")
+        }
+
+        socket.on("state:update", (state) => {
+            if (!state) return
+
+            const active = state.hasActiveRace
+            const mode = (state.raceMode || "").toLowerCase()
+
+            if (!active) {
+                statusEl.textContent = "No Active Race"
+                statusEl.className = "status-idle"
+                return
+            }
+
+            if (mode === "finish") {
+                statusEl.textContent = "FINISHED"
+                statusEl.className = "status-finish"
+                return
+            }
+
+            statusEl.textContent = mode.toUpperCase()
+            statusEl.className = `status-${mode}`
+        })
+
+        // FULLSCREEN
+        const fsBtn = document.getElementById("fullscreen-btn")
+
+        fsBtn.onclick = () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen()
+                document.body.classList.add("fullscreen-mode")
+            } else {
+                document.exitFullscreen()
+                document.body.classList.remove("fullscreen-mode")
+            }
+        }
+
+        // ESC exits fullscreen
+        document.addEventListener("fullscreenchange", () => {
+            if (!document.fullscreenElement) {
+                document.body.classList.remove("fullscreen-mode")
+            }
+        })
+    </script>
+
+</body>
+
+</html>
