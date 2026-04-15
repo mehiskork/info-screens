@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>Race System Dashboard</title>
+    <title>Dashboard</title>
     <script src="/socket.io/socket.io.js"></script>
 
     <style>
@@ -115,10 +115,15 @@
             font-weight: bold;
         }
 
-        .status-live {
+        .status-safe {
             color: #32cd32;
         }
 
+        .status-hazard {
+            color: yellow;
+        }
+
+        .status-danger,
         .status-idle {
             color: red;
         }
@@ -178,7 +183,7 @@
     <div id="main-title">Beachside Racetrack</div>
 
     <!-- DASHBOARD TITLE -->
-    <div id="dashboard-title">Race System Dashboard</div>
+    <div id="dashboard-title">Dashboard</div>
 
     <!-- STATUS -->
     <div id="status-bar">
@@ -205,7 +210,7 @@
         const statusEl = document.getElementById("race-status")
 
         function go(path) {
-            window.location.href = path
+            window.open(path, "_blank", "noopener")
         }
 
         socket.on("state:update", (state) => {
@@ -227,7 +232,7 @@
             }
 
             statusEl.textContent = mode.toUpperCase()
-            statusEl.className = "status-live"
+            statusEl.className = `status-${mode}`
         })
 
         // FULLSCREEN
