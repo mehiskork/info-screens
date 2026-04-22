@@ -7,7 +7,7 @@ This project provides employee interfaces for preparing and controlling races, p
 It supports:
 
 - upcoming race session management
-- receptionist-selected car assignments
+- receptionist-selected or auto-assigned car assignments
 - live race control and flag state changes
 - lap-line tracking with large car buttons
 - real-time leaderboard and public displays
@@ -28,6 +28,7 @@ It supports:
 - [Available Routes](#available-routes)
 - [How the System Works](#how-the-system-works)
 - [User Guide](#user-guide)
+  - [Dashboard](#dashboard)
   - [Front Desk](#front-desk)
   - [Race Control](#race-control)
   - [Lap-line Tracker](#lap-line-tracker)
@@ -58,7 +59,7 @@ This application solves those problems with separate interfaces for reception st
 
 The system is designed around the race lifecycle:
 
-1. The receptionist creates sessions and assigns drivers to cars.
+1. The receptionist creates sessions and adds drivers to cars.
 2. Drivers view the upcoming session on the Next Race display.
 3. The Safety Official starts the race from Race Control.
 4. The Lap-line Observer records crossings on a tablet-friendly interface.
@@ -74,7 +75,7 @@ The system is designed around the race lifecycle:
 - Create, view, and delete upcoming race sessions
 - Add, edit, and remove drivers from a session
 - Enforce unique driver names within a session
-- Assign cars to drivers before the race starts
+- Assign cars to drivers before the race starts, or automatically use the smallest available car
 - Show the upcoming race and car assignments on the Next Race display
 - Start a race from Race Control
 - Change race modes between Safe, Hazard, Danger, and Finish
@@ -98,7 +99,8 @@ The system is designed around the race lifecycle:
 ### Extra functionality
 
 - Persisted application state across server restarts
-- Receptionist-selected car assignment instead of random allocation
+- Receptionist-selected car assignment with smallest-available auto assignment as a fallback
+- Dashboard
 
 
 ---
@@ -121,7 +123,6 @@ The system is designed around the race lifecycle:
 ├── backend/
 │   ├── config/
 │   ├── persistence/
-│   ├── public/
 │   ├── services/
 │   ├── sockets/
 │   ├── state/
@@ -130,6 +131,7 @@ The system is designed around the race lifecycle:
 │   ├── package.json
 │   └── server.js
 ├── frontend/
+│   ├── dashboard/
 │   ├── front-desk/
 │   ├── lap-line-tracker/
 │   ├── leaderboard/
@@ -247,28 +249,41 @@ Behavior:
 After starting the server, open the app in your browser:
 
 ```text
-http://localhost:3000/front-desk
+http://localhost:3000/
 ```
 
 ## Available Routes
+
+### Main entry
+
+| Screen | Purpose | Route |
+|---|---|---|
+| Dashboard | Opens all main interfaces from one screen | `/` |
+
+### Employee interfaces
 
 | Interface | Persona | Route |
 |---|---|---|
 | Front Desk | Receptionist | `/front-desk` |
 | Race Control | Safety Official | `/race-control` |
 | Lap-line Tracker | Lap-line Observer | `/lap-line-tracker` |
+
+### Public displays
+
+| Interface | Persona | Route |
+|---|---|---|
 | Leader Board | Guest / Spectator | `/leader-board` |
 | Next Race | Race Driver | `/next-race` |
-| Race Countdown | Race Driver | `/race-countdown` |
-| Race Flags | Race Driver | `/race-flags` |
-| Start Lights | Race Driver / Public display | `/start-lights` |
+| Race Countdown | Race Driver / Public display | `/race-countdown` |
+| Race Flags | Race Driver / Public display | `/race-flags` |
 
-### Additional backend routes
+### Bonus screens / endpoints
 
 | Route | Purpose |
 |---|---|
-| `/api/leaderboard/all-time` | Returns persisted all-time top 10 lap data as JSON |
-| `/all-time-best-laps` | Placeholder route for a future all-time leaderboard screen |
+| `/start-lights` | Bonus start-light display |
+| `/api/leaderboard/all-time` | Returns all-time top 10 lap data as JSON |
+| `/all-time-best-laps` | Placeholder route for future frontend view |
 
 ---
 
@@ -334,6 +349,29 @@ After a race ends, the last finished race remains visible on the leaderboard unt
 
 ---
 
+## Dashboard
+
+**Route:** `/`
+
+### Purpose
+
+The dashboard is the main entry screen for opening all interfaces from one place.
+
+### What it shows
+
+- quick links to all employee interfaces
+- quick links to all public displays
+- current race status
+- fullscreen support
+
+### Typical use
+
+1. Open `/`
+2. Launch the needed interfaces in separate tabs or windows
+3. Use it as a control hub during demos and review
+
+---
+
 ## Front Desk
 
 **Route:** `/front-desk`  
@@ -357,7 +395,7 @@ Used to manage the upcoming race queue before a race starts.
 - add a driver to a session
 - edit a driver name
 - remove a driver
-- assign a car number to a driver
+- assign a car number to a driver, or leave it blank to use the smallest available car
 
 ### Rules enforced
 
@@ -370,7 +408,7 @@ Used to manage the upcoming race queue before a race starts.
 
 1. Unlock the interface.
 2. Create a new session.
-3. Add drivers and assign car numbers.
+3. Add drivers and optionally assign car numbers.
 4. Repeat for the next sessions in the queue.
 
 ---
@@ -399,10 +437,11 @@ Used to start races, control race mode, and end the session.
 
 1. Unlock Race Control.
 2. Review the next session and driver/car assignments.
-3. Press **Start Race**.
-4. Use mode controls during the race.
-5. Change to **Finish** when the race is over.
-6. End the session once the cars have returned.
+3. Press **Start Race** to the start-lights sequence.
+4. After the lights go out, press **Start Race** again to begin the race timer.
+5. Use mode controls during the race.
+6. Change to **Finish** when the race is over.
+7. End the session once the cars have returned.
 
 ### Important behavior
 
@@ -566,7 +605,7 @@ Shows a visual race start-light sequence as an additional public display.
 
 ### Notes
 
-This is bonus functionality and is not required for the core MVP flow. It does not replace the required race control, flag, countdown, next-race, or leaderboard screens.
+This is bonus functionality and is not required for the core MVP flow. It does not replace the required race control, flag, countdown, next-race, or leaderboard screens. The light sequence does not start the race automatically. The Safety Official must still press **Start Race** in Race Control.
 
 ---
 
@@ -607,13 +646,17 @@ On server restart:
 
 ## Extra Functionality
 
+### Dashboard
+
+Main entry screen for opening all interfaces from one place.
+
 ### Persisted state
 
 The project persists its application state so that the server can restart without losing the queue and key race data.
 
 ### Receptionist-selected cars
 
-Instead of relying on random allocation, the receptionist chooses the car number for each driver when setting up a session.
+Instead of relying on random allocation, the receptionist can choose the car number for each driver. If no car is selected, the system assigns the smallest available car number in that session.
 
 ### Start lights display
 
@@ -690,7 +733,7 @@ Example employee routes:
 - `https://racetrack.portu.ee/lap-line-tracker`
 
 
-Autentication:
+Authentication:
 
 - RECEPTIONIST_KEY=kesa1as
 - OBSERVER_KEY=mut1onu

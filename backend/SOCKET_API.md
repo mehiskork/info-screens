@@ -276,7 +276,7 @@ socket.emit('getNextRace', (response) => {
 
 **Event:** `driver:add`  
 **Auth:** Receptionist (required)  
-**Payload:** `{ sessionId: number, driverName: string, carNumber: number }`  
+**Payload:** `{ sessionId: number, driverName: string, carNumber?: number }`
 **Response:** `{ success: boolean, driver?: Object, error?: string }`
 
 ```javascript
@@ -288,7 +288,6 @@ socket.emit('driver:add', { sessionId: 1, driverName: 'Alice', carNumber: 3 }, (
     console.error(response.error)
     // Possible errors:
     // - "Session not found"
-    // - "Car number is required"
     // - "Car number must be a valid number"
     // - "Car number must be between 1 and 8"
     // - "Car X is already assigned in this session"
@@ -299,7 +298,8 @@ socket.emit('driver:add', { sessionId: 1, driverName: 'Alice', carNumber: 3 }, (
 ```
 
 **Notes:**
-- **Car number (1-8) must be provided by the receptionist** (manual selection)
+- If `carNumber` is omitted or blank, the smallest available car number is assigned automatically
+- If `carNumber` is provided, it must be between 1 and 8
 - Car numbers must be unique within a session
 - Driver names must be unique within a session
 - Maximum 8 drivers per session
@@ -665,7 +665,7 @@ socket.on('connect_error', (err) => {
 
 **Current Status:** Core racing features and all authentication roles are fully functional. You can:
 - Create and manage sessions
-- Add/remove/update drivers (manual car assignment 1-8)
+- Add/remove/update drivers (manual car assignment 1-8, with smallest-available auto assignment when omitted)
 - Authenticate receptionists, safety officials, and observers with handshake access keys
 - Start races and control race modes (safe/hazard/danger/finish)
 - Query next race in queue with state information (upcoming/paddock)

@@ -20,6 +20,11 @@ app.use('/frontend', express.static('../frontend'))
 // Serve leaderboard assets from a backend-owned first-level route
 app.use('/leader-board', express.static(path.join(__dirname, '../frontend/leaderboard'), { index: false }))
 
+// Serve dashboard
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dashboard/index.html'))
+})
+
 // Routes for frontend interfaces
 app.get('/front-desk', (req, res) => {
   res.sendFile(path.join(__dirname, '../frontend/front-desk/index.html'))

@@ -83,30 +83,55 @@ function getSessionById(sessionId) {
   return state.sessions.find(session => session.id === sessionId) || null
 }
 
+function isActiveSession(sessionId) {
+  return state.currentRace.sessionId !== null
+    && Number(sessionId) === Number(state.currentRace.sessionId)
+}
+
+function rejectActiveSessionMutation(sessionId) {
+  if (isActiveSession(sessionId)) {
+    return {
+      success: false,
+      error: 'Cannot modify a session while it is racing'
+    }
+  }
+
+  return null
+}
+
+function isMissingCarNumber(carNumber) {
+  return carNumber === undefined
+    || carNumber === null
+    || (typeof carNumber === 'string' && carNumber.trim() === '')
+}
+
+function getSmallestAvailableCarNumber(session) {
+  const takenCars = new Set(session.drivers.map(driver => driver.carNumber))
+
+  for (let carNumber = 1; carNumber <= 8; carNumber++) {
+    if (!takenCars.has(carNumber)) {
+      return carNumber
+    }
+  }
+
+  return null
+}
+
+
 /**
  * Step 4: Add a driver to a session
- * Receptionist must specify the car number (1-8)
+ * Receptionist may specify the car number (1-8), otherwise the smallest
+ * available car is assigned automatically.
  */
 function addDriver(sessionId, driverName, carNumber) {
+
+  const activeSessionError = rejectActiveSessionMutation(sessionId)
+  if (activeSessionError) {
+    return activeSessionError
+  }
   // Validate driver name
   if (!driverName || typeof driverName !== 'string' || driverName.trim() === '') {
     return { success: false, error: 'Driver name is required' }
-  }
-
-  // Validate car number is provided
-  if (carNumber === undefined || carNumber === null) {
-    return { success: false, error: 'Car number is required' }
-  }
-
-  // Validate car number is a number
-  const carNum = parseInt(carNumber, 10)
-  if (isNaN(carNum)) {
-    return { success: false, error: 'Car number must be a valid number' }
-  }
-
-  // Validate car number is in valid range (1-8)
-  if (carNum < 1 || carNum > 8) {
-    return { success: false, error: 'Car number must be between 1 and 8' }
   }
 
   // Find the session
@@ -115,10 +140,35 @@ function addDriver(sessionId, driverName, carNumber) {
     return { success: false, error: 'Session not found' }
   }
 
+  let carNum
+  const shouldAutoAssignCar = isMissingCarNumber(carNumber)
+
+  if (!shouldAutoAssignCar) {
+    carNum = Number(carNumber)
+
+    // Validate car number is a number
+    if (!Number.isInteger(carNum)) {
+      return { success: false, error: 'Car number must be a valid number' }
+    }
+
+    // Validate car number is in valid range (1-8)
+    if (carNum < 1 || carNum > 8) {
+      return { success: false, error: 'Car number must be between 1 and 8' }
+    }
+  }
+
   // Check if driver name already exists in this session
   const nameExists = session.drivers.some(d => d.name === driverName)
   if (nameExists) {
     return { success: false, error: 'Driver name must be unique in this session' }
+  }
+
+  if (shouldAutoAssignCar) {
+    carNum = getSmallestAvailableCarNumber(session)
+
+    if (carNum === null) {
+      return { success: false, error: 'Session is full (max 8 drivers)' }
+    }
   }
 
   // Check if car number is already taken in this session
@@ -185,6 +235,11 @@ function getNextRaceSession() {
  * Step 6: Remove a session
  */
 function removeSession(sessionId) {
+
+  const activeSessionError = rejectActiveSessionMutation(sessionId)
+  if (activeSessionError) {
+    return activeSessionError
+  }
   const index = state.sessions.findIndex(s => s.id === sessionId)
   if (index === -1) {
     return { success: false, error: 'Session not found' }
@@ -199,6 +254,14 @@ function removeSession(sessionId) {
  * Step 7: Remove a driver from a session
  */
 function removeDriver(sessionId, driverName) {
+
+
+
+  const activeSessionError = rejectActiveSessionMutation(sessionId)
+  if (activeSessionError) {
+    return activeSessionError
+  }
+
   const session = getSessionById(sessionId)
   if (!session) {
     return { success: false, error: 'Session not found' }
@@ -220,6 +283,11 @@ function removeDriver(sessionId, driverName) {
  * Cannot change car number as it's auto-assigned
  */
 function updateDriver(sessionId, carNumber, newDriverName) {
+
+  const activeSessionError = rejectActiveSessionMutation(sessionId)
+  if (activeSessionError) {
+    return activeSessionError
+  }
   // Validate inputs
   if (!newDriverName || typeof newDriverName !== 'string' || newDriverName.trim() === '') {
     return { success: false, error: 'Driver name is required' }
