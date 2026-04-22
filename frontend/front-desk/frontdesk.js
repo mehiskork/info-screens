@@ -169,7 +169,7 @@ function renderSessions(sessions) {
       <form class="driver-form">
 
       <!-- form-label - styling, car-label - positioning -->
-  <p class="form-label car-label">Select Car</p>
+  <p class="form-label car-label">Select a car</p>
 
   <div class="car-picker">
 
@@ -242,7 +242,7 @@ function renderSessions(sessions) {
             e.preventDefault();
 
             const driverName = formatDriverName(driverNameInput.value);
-            const carNumber = Number(carNumberInput.value);
+            const selectedCarNumber = carNumberInput.value;
 
 
             if (driverName.length > MAX_DRIVER_NAME_LENGTH) {
@@ -257,16 +257,17 @@ function renderSessions(sessions) {
                 return;
             }
 
-            if (!carNumber) {
-                driversError.textContent = "Select a car"
-                return;
+            driversError.textContent = "";
+            const driverPayload = { sessionId: session.id, driverName };
+
+            if (selectedCarNumber !== "") {
+                driverPayload.carNumber = Number(selectedCarNumber);
             }
 
-            driversError.textContent = "";
-            console.log("sending driver:add", session.id, driverName, carNumber);
+            console.log("sending driver:add", driverPayload);
 
-            // sends Socket.IO event, payload inlcudes which session to add, normalized drivername, chosen car
-            socket.emit("driver:add", { sessionId: session.id, driverName, carNumber }, (response) => {
+            // sends Socket.IO event with the session, normalized driver name, and optional chosen car
+            socket.emit("driver:add", driverPayload, (response) => {
                 console.log("driver: add response:", response);
 
                 if (!response.success) {

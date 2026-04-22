@@ -7,7 +7,7 @@ This project provides employee interfaces for preparing and controlling races, p
 It supports:
 
 - upcoming race session management
-- receptionist-selected car assignments
+- receptionist-selected or auto-assigned car assignments
 - live race control and flag state changes
 - lap-line tracking with large car buttons
 - real-time leaderboard and public displays
@@ -59,7 +59,7 @@ This application solves those problems with separate interfaces for reception st
 
 The system is designed around the race lifecycle:
 
-1. The receptionist creates sessions and assigns drivers to cars.
+1. The receptionist creates sessions and adds drivers to cars.
 2. Drivers view the upcoming session on the Next Race display.
 3. The Safety Official starts the race from Race Control.
 4. The Lap-line Observer records crossings on a tablet-friendly interface.
@@ -75,7 +75,7 @@ The system is designed around the race lifecycle:
 - Create, view, and delete upcoming race sessions
 - Add, edit, and remove drivers from a session
 - Enforce unique driver names within a session
-- Assign cars to drivers before the race starts
+- Assign cars to drivers before the race starts, or automatically use the smallest available car
 - Show the upcoming race and car assignments on the Next Race display
 - Start a race from Race Control
 - Change race modes between Safe, Hazard, Danger, and Finish
@@ -99,7 +99,7 @@ The system is designed around the race lifecycle:
 ### Extra functionality
 
 - Persisted application state across server restarts
-- Receptionist-selected car assignment instead of random allocation
+- Receptionist-selected car assignment with smallest-available auto assignment as a fallback
 - Dashboard
 
 
@@ -395,7 +395,7 @@ Used to manage the upcoming race queue before a race starts.
 - add a driver to a session
 - edit a driver name
 - remove a driver
-- assign a car number to a driver
+- assign a car number to a driver, or leave it blank to use the smallest available car
 
 ### Rules enforced
 
@@ -408,7 +408,7 @@ Used to manage the upcoming race queue before a race starts.
 
 1. Unlock the interface.
 2. Create a new session.
-3. Add drivers and assign car numbers.
+3. Add drivers and optionally assign car numbers.
 4. Repeat for the next sessions in the queue.
 
 ---
@@ -656,7 +656,7 @@ The project persists its application state so that the server can restart withou
 
 ### Receptionist-selected cars
 
-Instead of relying on random allocation, the receptionist chooses the car number for each driver when setting up a session.
+Instead of relying on random allocation, the receptionist can choose the car number for each driver. If no car is selected, the system assigns the smallest available car number in that session.
 
 ### Start lights display
 
